@@ -15,13 +15,13 @@
     0.3162,
     0.3162
   ],
-  "sigma_eps": 0.2,
+  "sigma_eps": 0,
   "X_dist": "normal",
   "correlation_structure": "identity",
   "rho": 0,
-  "seed": 1001,
+  "seed": 123,
   "expected_behavior": "M_p constant; Rule A ties; Rule B convention-based",
   "p_true": 10,
-  "timestamp": "2025-11-04 20:18:22",
+  "timestamp": "2025-11-04 20:29:22",
   "R_version": "R version 4.5.1 (2025-06-13)"
 }

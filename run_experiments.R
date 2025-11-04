@@ -21,24 +21,65 @@ cat(paste(rep("=", 70), collapse = ""), "\n\n")
 # OPTION 1: Run a single scenario
 # =============================================================================
 
-run_single_scenario <- function() {
-  cat("Running single scenario (S2 - baseline)...\n\n")
+run_single_scenario <- function(scenario_id = "S2", n_reps = 1, seed = 123) {
+  cat(sprintf("Running scenario %s...\n\n", scenario_id))
   
-  # Get baseline scenario configuration
-  config <- scenario_s2_baseline(seed = 123)
+  # Get scenario configuration based on ID
+  scenarios <- get_all_scenarios()
   
-  # Run experiment
-  result <- run_experiment(
-    config = config,
-    output_dir = "results",
-    save_data = TRUE,
-    save_plots = TRUE,
-    verbose = TRUE
+  # Map scenario_id to scenario function
+  scenario_map <- list(
+    S1 = "s1",
+    S2 = "s2", 
+    S3 = "s3",
+    S4 = "s4",
+    S5 = "s5",
+    S6 = "s6_ar1",
+    S7 = "s7_snr",
+    S8 = "s8_nonlin",
+    S9 = "s9_interact",
+    S10 = "s10_redund",
+    S11 = "s11_meas",
+    S12 = "s12_tdist",
+    S13 = "s13_hetero",
+    S14 = "s14_group"
   )
   
-  cat("\nResults saved to:", result$exp_dir, "\n")
+  scenario_key <- scenario_map[[scenario_id]]
+  if (is.null(scenario_key)) {
+    stop(sprintf("Unknown scenario: %s. Valid scenarios: S1-S14", scenario_id))
+  }
   
-  return(result)
+  config <- scenarios[[scenario_key]]
+  config$seed <- seed
+  
+  if (n_reps == 1) {
+    # Run single experiment
+    result <- run_experiment(
+      config = config,
+      output_dir = "results",
+      save_data = TRUE,
+      save_plots = TRUE,
+      verbose = TRUE
+    )
+    
+    cat("\nResults saved to:", result$exp_dir, "\n")
+    return(result)
+    
+  } else {
+    # Run multiple repetitions
+    scenarios_list <- list()
+    scenarios_list[[scenario_key]] <- config
+    
+    results <- run_batch_experiments(
+      scenarios = scenarios_list,
+      n_reps = n_reps,
+      output_dir = "results",
+      verbose = TRUE
+    )
+    
+    return(results)
+  }
 }
 
 # =============================================================================
@@ -104,10 +145,11 @@ run_quick_test <- function() {
 if (interactive()) {
   cat("Interactive mode detected.\n")
   cat("To run experiments, use one of these commands:\n\n")
-  cat("  result <- run_single_scenario()      # Single scenario (S2)\n")
-  cat("  results <- run_batch_scenarios(3)    # S1-S3, 3 reps each\n")
-  cat("  results <- run_all_scenarios(5)      # All 14 scenarios, 5 reps\n")
-  cat("  result <- run_quick_test()           # Quick test\n\n")
+  cat("  result <- run_single_scenario()              # Single scenario (S2, default)\n")
+  cat("  result <- run_single_scenario('S1', n_reps=5) # Scenario S1, 5 repetitions\n")
+  cat("  results <- run_batch_scenarios(3)            # S1-S3, 3 reps each\n")
+  cat("  results <- run_all_scenarios(5)              # All 14 scenarios, 5 reps\n")
+  cat("  result <- run_quick_test()                   # Quick test\n\n")
   
 } else {
   # Non-interactive: run from command line with arguments

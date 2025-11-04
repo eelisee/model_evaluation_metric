@@ -25,7 +25,7 @@ scenario_s1_constant <- function(n = 100, p_max = 10, sigma_eps = 0.2, seed = NU
     n = n,
     p_max = p_max,
     beta_spec = rep(beta_val, p_max),
-    sigma_eps = sigma_eps,
+    sigma_eps = 0.0, #sigma_eps,
     X_dist = "normal",
     correlation_structure = "identity",
     rho = 0,
