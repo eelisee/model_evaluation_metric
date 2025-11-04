@@ -119,7 +119,7 @@ The framework includes 14 comprehensive test scenarios:
 
 ### Core Scenarios
 
-**S1: Constant Signal Strength**
+**S1: Constant Signal Strength** ! does not work yet!
 - Tests degeneracy detection when all predictors contribute equally
 - Expected behavior: M_p remains flat, rule should detect degeneracy
 
@@ -155,31 +155,31 @@ The framework includes 14 comprehensive test scenarios:
 
 ### Complex Structures
 
-**S9: Nonlinear Terms**
+**S8: Nonlinear Terms**
 - True model includes squared terms
 - Tests performance when linear assumptions violated
 
-**S10: Interaction Terms**
+**S9: Interaction Terms**
 - True model includes interaction X₁ × X₂
 - Tests detection of multiplicative effects
 
-**S11: Redundant Variables**
+**S10: Redundant Variables**
 - Multiple irrelevant predictors among true signals
 - Tests specificity and false positive control
 
-**S12: Measurement Error**
+**S11: Measurement Error**
 - Predictors observed with noise
 - Tests robustness to attenuation bias
 
-**S13: Non-Gaussian Predictors**
+**S12: Non-Gaussian Predictors**
 - Two sub-scenarios: t-distribution (heavy tails), lognormal (skewed)
 - Tests robustness to distributional assumptions
 
-**S14: Heteroscedastic Errors**
+**S13: Heteroscedastic Errors**
 - Error variance depends on predictor values
 - Tests performance under non-constant variance
 
-**S15: Group Sparsity**
+**S14: Group Sparsity**
 - Predictors organized in groups, some groups fully inactive
 - Tests block-level selection behavior
 
