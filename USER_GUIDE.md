@@ -69,7 +69,7 @@ Save     Save to RData   Model list         All metrics
 meta.json                                   (R², M_p, AIC, BIC)
                               ↓                   ↓
                         Apply Rules         Compute Recovery
-                        (A, B, C)          (TP/FP/FN, F1)
+                                              (TP/FP/FN, F1)
                               ↓                   ↓
                         Save results       Generate plots
                         to CSV             Save to plots/
@@ -82,7 +82,7 @@ meta.json                                   (R², M_p, AIC, BIC)
 
 | ID | Scenario | Description | Expected Behavior |
 |----|----------|-------------|-------------------|
-| S1 | Constant M_p | All M_p values identical | Rule A should fail (degeneracy) |
+| S1 | Constant M_p | All M_p values identical | M_p should fail (degeneracy) |
 | S2 | Baseline | Standard conditions | Should recover true p* |
 | S3 | Random Order | Shuffled coefficients | Order-invariance test |
 | S4 | Heteroscedastic Predictors | Varying variances | Robustness to scale |

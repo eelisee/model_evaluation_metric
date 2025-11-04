@@ -1,0 +1,98 @@
+====================================================================== 
+ALTERNATIVE METRICS EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S13_heteroscedastic_errors
+Description: Non-constant error variance
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 3
+  Noise level (sigma_eps): 0.200
+MODELS EVALUATED
+---------------------------------------------------------------------- 
+  Total models: 1023
+  R² range: [0.0002, 0.9687]
+  M_p range: [0.0002, 0.5305]
+
+MODEL SELECTION RESULTS
+====================================================================== 
+
+Standard M_p (R²/p):
+  p* = 1
+  Selected: 1
+
+M_p_minus (R²/(p-1)):
+  p* = 2
+  Selected: 1,2
+  Diagnostics: Steepest drop at p=2 (drop=0.3654)
+
+M_p_sqrt (R²/√p):
+  p* = 3
+  Selected: 1,2,3
+  Diagnostics: Steepest drop at p=3 (drop=0.0743)
+
+M_p_scaled (R²·p_max/p):
+  p* = 1
+  Selected: 1
+  Diagnostics: Steepest drop at p=1 (drop=1.0610)
+
+Comparison Methods:
+  AIC: p* = 4, Selected: 1,2,3,5
+  BIC: p* = 3, Selected: 1,2,3
+
+True Model:
+  p_true = 3
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+  p        R2         Mp       AIC       BIC           subset_str
+  1 0.5304805 0.53048047 271.67494 279.49045                    1
+  2 0.8487654 0.42438269 160.38719 170.80787                  1,2
+  3 0.9666607 0.32222024  11.17757  24.20342                1,2,3
+  4 0.9675423 0.24188558  10.49762  26.12864              1,2,3,5
+  5 0.9678959 0.19357918  11.40236  29.63855            1,2,3,4,5
+  6 0.9681294 0.16135490  12.67241  33.51377          1,2,3,4,5,8
+  7 0.9683399 0.13833427  14.00974  37.45627        1,2,3,4,5,7,8
+  8 0.9685150 0.12106437  15.45512  41.50682      1,2,3,4,5,6,7,8
+  9 0.9686112 0.10762347  17.14893  45.80580    1,2,3,4,5,6,7,8,9
+ 10 0.9686547 0.09686547  19.01044  50.27248 1,2,3,4,5,6,7,8,9,10
+
+VARIABLE SELECTION PERFORMANCE
+====================================================================== 
+
+M_p:
+  p* = 1 (true: 3, diff: -2)
+  Precision: 1.000, Recall: 0.250, F1: 0.400
+
+M_p_minus:
+  p* = 2 (true: 3, diff: -1)
+  Precision: 1.000, Recall: 0.250, F1: 0.400
+
+M_p_sqrt:
+  p* = 3 (true: 3, diff: +0)
+  Precision: 1.000, Recall: 0.250, F1: 0.400
+
+M_p_scaled:
+  p* = 1 (true: 3, diff: -2)
+  Precision: 1.000, Recall: 0.250, F1: 0.400
+
+AIC:
+  p* = 4 (true: 3, diff: +1)
+  Precision: 1.000, Recall: 0.250, F1: 0.400
+
+BIC:
+  p* = 3 (true: 3, diff: +0)
+  Precision: 1.000, Recall: 0.250, F1: 0.400
+
+INTERPRETATION
+====================================================================== 
+
+M_p_minus OVER-selects by 1 compared to M_p
+M_p_sqrt OVER-selects by 2 compared to M_p (sublinear penalty)
+M_p_scaled selects IDENTICAL complexity to M_p (as expected - scale invariant)
+
+====================================================================== 
+End of summary

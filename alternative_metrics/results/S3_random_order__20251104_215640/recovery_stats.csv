@@ -1,0 +1,7 @@
+"rule","p_star","F1","precision","recall"
+"M_p",2,0,0,0
+"M_p_minus",2,0,0,0
+"M_p_sqrt",3,0,0,0
+"M_p_scaled",2,0,0,0
+"AIC",5,0,0,0
+"BIC",3,0,0,0
