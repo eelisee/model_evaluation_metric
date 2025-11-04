@@ -1,0 +1,34 @@
+# R files
+.Rhistory
+.RData
+.Rproj.user
+*.Rproj
+
+# Output directories
+example_output/
+output/
+plots/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*~
+*.swp
+*.swo
+
+# R package files
+*.tar.gz
+*.zip
+
+# LaTeX files (if generating reports)
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
