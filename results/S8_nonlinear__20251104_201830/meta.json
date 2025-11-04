@@ -1,0 +1,28 @@
+{
+  "scenario_name": "S8_nonlinear",
+  "scenario_description": "Nonlinear true model (OLS misspecification)",
+  "n": 100,
+  "p_max": 10,
+  "beta_spec": [
+    1,
+    0.8,
+    0.5,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "sigma_eps": 0.2,
+  "X_dist": "normal",
+  "correlation_structure": "identity",
+  "rho": 0,
+  "nonlinear_terms": true,
+  "seed": 8001,
+  "expected_behavior": "Linear OLS misspecified; R² may not reach 1",
+  "p_true": 3,
+  "timestamp": "2025-11-04 20:18:30",
+  "R_version": "R version 4.5.1 (2025-06-13)"
+}

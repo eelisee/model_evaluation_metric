@@ -1,0 +1,27 @@
+{
+  "scenario_name": "S10_redundant",
+  "scenario_description": "Redundant/duplicate predictors",
+  "n": 100,
+  "p_max": 10,
+  "beta_spec": [
+    1,
+    0.8,
+    0.5,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "sigma_eps": 0.2,
+  "X_dist": "normal",
+  "correlation_structure": "compound",
+  "rho": 0.95,
+  "seed": 10001,
+  "expected_behavior": "Many equivalent models; equivalence classes",
+  "p_true": 3,
+  "timestamp": "2025-11-04 20:18:33",
+  "R_version": "R version 4.5.1 (2025-06-13)"
+}

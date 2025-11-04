@@ -1,0 +1,4 @@
+"rule","p_star","p_true","p_diff","TP","FP","FN","precision","recall","F1","hamming_distance","exact_match","selected_subset"
+"mp",2,3,-1,2,0,1,1,0.666666666666667,0.8,1,FALSE,"1,2"
+"AIC",5,3,2,3,2,0,0.6,1,0.75,2,FALSE,"1,2,3,5,6"
+"BIC",3,3,0,3,0,0,1,1,1,0,TRUE,"1,2,3"

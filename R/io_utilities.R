@@ -29,7 +29,6 @@ create_experiment_dir <- function(scenario_name, base_dir = "results", timestamp
   # Create directory structure
   dir.create(exp_dir, recursive = TRUE, showWarnings = FALSE)
   dir.create(file.path(exp_dir, "plots"), recursive = TRUE, showWarnings = FALSE)
-  dir.create(file.path(exp_dir, "diagnostics"), recursive = TRUE, showWarnings = FALSE)
   
   return(exp_dir)
 }
@@ -165,10 +164,8 @@ save_ranking_correlations <- function(correlations, exp_dir) {
 #' @export
 save_aggregate_by_p <- function(aggregate_df, exp_dir) {
   
-  agg_file <- file.path(exp_dir, "diagnostics", "aggregate_by_p.csv")
+  agg_file <- file.path(exp_dir, "aggregate_by_p.csv")
   write.csv(aggregate_df, agg_file, row.names = FALSE)
-  
-  cat(sprintf("  Aggregate statistics saved to: %s\n", agg_file))
 }
 
 

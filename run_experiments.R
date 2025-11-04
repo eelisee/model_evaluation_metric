@@ -114,9 +114,16 @@ if (interactive()) {
   args <- commandArgs(trailingOnly = TRUE)
   
   if (length(args) == 0) {
-    # Default: run single scenario
-    cat("No arguments provided. Running single scenario (S2)...\n\n")
-    result <- run_single_scenario()
+    # Default: show usage message
+    cat("No command-line arguments provided.\n")
+    cat("Use one of these commands:\n\n")
+    cat("  Rscript run_experiments.R single       # Single scenario (S2)\n")
+    cat("  Rscript run_experiments.R batch [N]    # S1-S3, N reps each\n")
+    cat("  Rscript run_experiments.R all [N]      # All 14 scenarios, N reps\n")
+    cat("  Rscript run_experiments.R test         # Quick test\n\n")
+    cat("Or source the script in R and call functions directly:\n")
+    cat("  source('run_experiments.R')\n")
+    cat("  result <- run_all_scenarios(n_reps = 1)\n\n")
     
   } else if (args[1] == "single") {
     result <- run_single_scenario()

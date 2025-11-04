@@ -1,0 +1,78 @@
+====================================================================== 
+M_p MODEL SELECTION EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S12_nongaussian_t 
+Description: Non-Gaussian (t distribution) 
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 3
+  Noise level (sigma_eps): 0.200
+  Predictor distribution: t
+  Correlation structure: identity
+  Random seed: 12001
+
+RESULTS OVERVIEW
+---------------------------------------------------------------------- 
+  Models evaluated: 1023
+  R² range: [0.0000, 0.9912]
+  M_p range: [0.0000, 0.4664]
+  Execution time: 1.15 seconds
+
+MODEL SELECTION RESULTS
+---------------------------------------------------------------------- 
+  M_p:                  p* = 2
+  AIC:                  p* = 6
+  BIC:                  p* = 4
+  True p:               p_true = 3
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+    p     R2      Mp    AIC    BIC           subset_str
+1   1 0.4664 0.46640 338.89 346.71                    1
+2   2 0.8311 0.41556 225.85 236.27                  1,2
+3   3 0.9900 0.32999 -54.56 -41.53                1,2,3
+4   4 0.9905 0.24764 -58.40 -42.77             1,2,3,10
+5   5 0.9907 0.19815 -58.38 -40.14           1,2,3,6,10
+6   6 0.9909 0.16515 -58.57 -37.73         1,2,3,6,7,10
+7   7 0.9910 0.14158 -57.76 -34.31       1,2,3,5,6,7,10
+8   8 0.9912 0.12390 -57.28 -31.23     1,2,3,5,6,7,8,10
+9   9 0.9912 0.11013 -55.38 -26.72   1,2,3,5,6,7,8,9,10
+10 10 0.9912 0.09912 -53.38 -22.12 1,2,3,4,5,6,7,8,9,10 
+
+VARIABLE SELECTION PERFORMANCE
+---------------------------------------------------------------------- 
+  M_p:
+    p* = 2 (true: 3, diff: -1)
+    TP=2, FP=0, FN=1
+    Precision: 1.000, Recall: 0.667, F1: 0.800
+    Hamming distance: 1, Exact match: FALSE
+    Selected: 1,2
+
+  AIC:
+    p* = 6 (true: 3, diff: +3)
+    TP=3, FP=3, FN=0
+    Precision: 0.500, Recall: 1.000, F1: 0.667
+    Hamming distance: 3, Exact match: FALSE
+    Selected: 1,2,3,6,7,10
+
+  BIC:
+    p* = 4 (true: 3, diff: +1)
+    TP=3, FP=1, FN=0
+    Precision: 0.750, Recall: 1.000, F1: 0.857
+    Hamming distance: 1, Exact match: FALSE
+    Selected: 1,2,3,10
+
+EXPECTED BEHAVIOR
+---------------------------------------------------------------------- 
+   Test distribution robustness 
+
+INTERPRETATION
+---------------------------------------------------------------------- 
+  ~ M_p close to true complexity (off by 1 )
+
+====================================================================== 
+End of summary
