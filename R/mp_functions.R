@@ -1,8 +1,6 @@
-# Core Functions for M_p Model Evaluation Metric
-# ==============================================
+# Core Functions for M_p Model Evaluation Metric - Synthetic Data Generation
+# ===========================================================================
 
-#' Generate Synthetic Data for Model Evaluation
-#'
 #' Creates a dataset with normally distributed predictors and a linear response
 #' with specified true coefficients and noise level.
 #'

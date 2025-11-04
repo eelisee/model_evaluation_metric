@@ -54,7 +54,7 @@ plot_mp_curves <- function(results, p_star = NULL, save_path = NULL) {
     
     if (!is.null(save_path)) {
       ggsave(save_path, p, width = 10, height = 8, dpi = 300)
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     
     return(p)
@@ -93,7 +93,7 @@ plot_mp_curves <- function(results, p_star = NULL, save_path = NULL) {
     
     if (!is.null(save_path)) {
       dev.off()
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     
     par(mfrow = c(1, 1))
@@ -139,7 +139,7 @@ plot_best_mp_curve <- function(results, p_star = NULL, save_path = NULL) {
     
     if (!is.null(save_path)) {
       ggsave(save_path, p, width = 10, height = 6, dpi = 300)
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     return(p)
   } else {
@@ -164,7 +164,7 @@ plot_best_mp_curve <- function(results, p_star = NULL, save_path = NULL) {
     
     if (!is.null(save_path)) {
       dev.off()
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     
     invisible(NULL)
@@ -209,7 +209,7 @@ plot_r2_curve <- function(results, p_star = NULL, save_path = NULL) {
     
     if (!is.null(save_path)) {
       ggsave(save_path, p, width = 10, height = 6, dpi = 300)
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     return(p)
   } else {
@@ -233,7 +233,7 @@ plot_r2_curve <- function(results, p_star = NULL, save_path = NULL) {
     
     if (!is.null(save_path)) {
       dev.off()
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     
     invisible(NULL)
@@ -281,7 +281,7 @@ plot_all_models_scatter <- function(results, p_star = NULL, save_path = NULL) {
     
     if (!is.null(save_path)) {
       ggsave(save_path, p, width = 10, height = 6, dpi = 300)
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     return(p)
   } else {
@@ -309,7 +309,7 @@ plot_all_models_scatter <- function(results, p_star = NULL, save_path = NULL) {
     
     if (!is.null(save_path)) {
       dev.off()
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     
     invisible(NULL)
@@ -407,7 +407,7 @@ plot_criterion_comparison <- function(results, p_star_mp = NULL, save_path = NUL
     
     if (!is.null(save_path)) {
       ggsave(save_path, p, width = 10, height = 6, dpi = 300)
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     return(p)
   } else {
@@ -436,7 +436,7 @@ plot_criterion_comparison <- function(results, p_star_mp = NULL, save_path = NUL
     
     if (!is.null(save_path)) {
       dev.off()
-      cat(sprintf("Plot saved to: %s\n", save_path))
+      #cat(sprintf("Plot saved to: %s\n", save_path))
     }
     
     invisible(NULL)

@@ -128,12 +128,12 @@ if (config$save_results) {
   # Save full results
   results_file <- file.path(config$output_dir, "all_models_results.csv")
   write.csv(results, results_file, row.names = FALSE)
-  cat(sprintf("  Full results saved to: %s\n", results_file))
+  #cat(sprintf("  Full results saved to: %s\n", results_file))
   
   # Save best models by p
   best_models_file <- file.path(config$output_dir, "best_models_by_p.csv")
   write.csv(best_models_full, best_models_file, row.names = FALSE)
-  cat(sprintf("  Best models saved to: %s\n", best_models_file))
+  #cat(sprintf("  Best models saved to: %s\n", best_models_file))
   
   # Save summary
   summary_file <- file.path(config$output_dir, "analysis_summary.txt")
@@ -162,7 +162,7 @@ if (config$save_results) {
   cat("Best Models by Cardinality:\n")
   print(best_models_full[, c("p", "R2", "Mp", "AIC", "BIC", "subset_str")])
   sink()
-  cat(sprintf("  Summary saved to: %s\n", summary_file))
+  cat(sprintf("  Summary and models saved. %s\n", summary_file))
   cat("\n")
 }
 
@@ -189,39 +189,7 @@ if (config$save_plots) {
     save_path = file.path(plots_dir, "criterion_comparison.png")
   )
   
-  cat("\n")
 }
-
-# ============================================================================
-# STEP 7: DISPLAY KEY PLOTS
-# ============================================================================
-
-cat("Step 7: Displaying key visualizations...\n\n")
-
-# Display combined plot
-plot1 <- plot_mp_curves(results, optimal_result$p_star)
-print(plot1)
-
-cat("\nPress Enter to see next plot...")
-readline()
-
-# Display M_p efficiency curve
-plot2 <- plot_best_mp_curve(results, optimal_result$p_star)
-print(plot2)
-
-cat("\nPress Enter to see next plot...")
-readline()
-
-# Display all models scatter
-plot3 <- plot_all_models_scatter(results, optimal_result$p_star)
-print(plot3)
-
-cat("\nPress Enter to see next plot...")
-readline()
-
-# Display criterion comparison
-plot4 <- plot_criterion_comparison(results, p_star_mp = optimal_result$p_star)
-print(plot4)
 
 # ============================================================================
 # FINAL SUMMARY
@@ -242,9 +210,7 @@ cat(sprintf("  3. BIC selected p* = %d (True: %d, Difference: %+d)\n",
 cat("\n")
 
 if (config$save_results && config$save_plots) {
-  cat("Output files:\n")
-  cat(sprintf("  - Results: %s/\n", config$output_dir))
-  cat(sprintf("  - Plots: %s/plots/\n", config$output_dir))
+  cat("Output files are in the corresponding subdirectory of the output directory\n")
   cat("\n")
 }
 
@@ -256,7 +222,3 @@ if (optimal_result$p_star == p_true) {
 } else {
   cat("  ⚠ M_p selected a more complex model (overfitting risk)\n")
 }
-
-cat("\n")
-cat("Thank you for using the M_p Model Evaluation Metric!\n")
-cat("\n")
