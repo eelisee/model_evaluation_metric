@@ -50,10 +50,11 @@ metric/
 │   ├── visualization.R      # Plotting functions
 │   └── utils.R              # Utility functions
 ├── main_analysis.R          # Main execution script
+├── example.R                # Example Code
 ├── example_output/          # Example results
 │   ├── model_results.csv
 │   └── plots/
-└── tests/                   # Test scripts (optional)
+└── install.R                # Required packages
 ```
 
 ## Installation
@@ -132,48 +133,27 @@ plot_mp_curves(results, optimal$p_star)
 - `plot_mp_curves(results, p_star)`: Plot R² and M_p vs. model complexity
 - `plot_best_mp_curve(results)`: Plot only the best M_p for each p
 
-## Algorithm Overview
+## Functionality Overview
 
 1. **Data Generation**: Create synthetic dataset with known structure
 2. **Model Enumeration**: Generate all $2^{P_{\max}}$ possible models
 3. **Model Evaluation**: For each model, compute $R^2_S$ and $M_p(S)$
 4. **Grouping**: Group results by model cardinality $p$
-5. **Optimization**: Find $p^*$ that maximizes efficiency
-6. **Visualization**: Plot curves and identify optimal point
+5. **Optimization**: Find $p^*$ with steepest descent
+6. **Visualization**: Plot curves
 
 ## Implementation Notes
 
-- Exhaustive search is computationally feasible for $P_{\max} \leq 12$
+- Exhaustive search might not be computationally feasible for $P_{\max}$ large
 - For larger problems, consider greedy or stochastic search algorithms
 - The metric is dimensionless and directly comparable across different datasets
 
-## Interpretation Guidelines
-
-When analyzing the M_p curve:
-
-- **Rapid drop**: Indicates diminishing explanatory efficiency per added parameter
-- **Flattening region**: Marks the optimal model size $p^*$
-- **Synthetic test**: $p^*$ should approximate the number of true non-zero coefficients
-
-## Example Results
-
-See `example_output/` directory for sample analysis results including:
-- Complete model results table
-- R² vs. p plot
-- M_p vs. p plot with optimal point highlighted
-
 ## Comparison with Other Metrics
 
-The M_p metric can be compared with:
+The M_p metric can be compared in `main_analysis.R` with
 - **AIC** (Akaike Information Criterion)
 - **BIC** (Bayesian Information Criterion)
 - **Adjusted R²**
-
-See `main_analysis.R` for comparative analysis.
-
-## References
-
-This implementation follows the theoretical framework outlined in the project specification.
 
 ## License
 
