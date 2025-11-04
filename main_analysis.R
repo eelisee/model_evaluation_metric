@@ -24,9 +24,9 @@ source("R/visualization.R")
 # ============================================================================
 
 cat("\n")
-cat("=" %>% rep(70) %>% paste(collapse = ""), "\n")
+cat(paste(rep("=", 70), collapse = ""), "\n")
 cat("M_p Model Evaluation Metric - Main Analysis\n")
-cat("=" %>% rep(70) %>% paste(collapse = ""), "\n\n")
+cat(paste(rep("=", 70), collapse = ""), "\n\n")
 
 # Data generation parameters
 config <- list(
@@ -228,9 +228,9 @@ print(plot4)
 # ============================================================================
 
 cat("\n\n")
-cat("=" %>% rep(70) %>% paste(collapse = ""), "\n")
+cat(paste(rep("=", 70), collapse = ""), "\n")
 cat("Analysis Complete!\n")
-cat("=" %>% rep(70) %>% paste(collapse = ""), "\n\n")
+cat(paste(rep("=", 70), collapse = ""), "\n\n")
 
 cat("Key Findings:\n")
 cat(sprintf("  1. M_p selected p* = %d (True: %d, Difference: %+d)\n", 

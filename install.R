@@ -73,10 +73,10 @@ for (file in required_files) {
 cat("\n")
 
 # Final status
-cat("=" %>% rep(60) %>% paste(collapse = ""), "\n")
+cat(paste(rep("=", 60), collapse = ""), "\n")
 if (all_installed && all_files_present) {
   cat("Installation Complete!\n")
-  cat("=" %>% rep(60) %>% paste(collapse = ""), "\n\n")
+  cat(paste(rep("=", 60), collapse = ""), "\n\n")
   
   cat("Quick Start:\n")
   cat("  1. Run the simple example:\n")
@@ -91,7 +91,7 @@ if (all_installed && all_files_present) {
   
 } else {
   cat("Installation Issues Detected\n")
-  cat("=" %>% rep(60) %>% paste(collapse = ""), "\n\n")
+  cat(paste(rep("=", 60), collapse = ""), "\n\n")
   
   if (!all_installed) {
     cat("Please install missing packages manually:\n")

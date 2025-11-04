@@ -61,20 +61,33 @@ metric/
 ### Requirements
 
 - R (≥ 4.0.0)
-- Required packages:
+- Optional package (recommended for better plots):
   ```r
-  install.packages(c("ggplot2", "dplyr", "tidyr"))
+  install.packages("ggplot2")
   ```
+
+**Note:** The code works with or without ggplot2. Without it, base R graphics are used automatically.
+
+To verify installation:
+```r
+source("install.R")
+```
 
 ## Usage
 
 ### Quick Start
 
-Run the complete analysis with default parameters:
+**Option 1:** Simple example (fast, 8 predictors):
+```r
+source("example.R")
+```
 
+**Option 2:** Full analysis (complete, 10 predictors):
 ```r
 source("main_analysis.R")
 ```
+
+See `QUICKSTART.md` for detailed usage instructions.
 
 ### Custom Analysis
 

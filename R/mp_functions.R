@@ -330,9 +330,9 @@ calculate_information_criteria <- function(X, y, results) {
 print_summary <- function(optimal_result, true_p = NULL) {
   
   cat("\n")
-  cat("=" %>% rep(60) %>% paste(collapse = ""), "\n")
+  cat(paste(rep("=", 60), collapse = ""), "\n")
   cat("M_p Model Selection Summary\n")
-  cat("=" %>% rep(60) %>% paste(collapse = ""), "\n\n")
+  cat(paste(rep("=", 60), collapse = ""), "\n\n")
   
   cat(sprintf("Optimal model complexity: p* = %d\n", optimal_result$p_star))
   cat(sprintf("Best R² at p*: %.4f\n", optimal_result$optimal_model$R2))
@@ -346,7 +346,7 @@ print_summary <- function(optimal_result, true_p = NULL) {
   
   cat("\n")
   cat("Best models by cardinality:\n")
-  cat("-" %>% rep(60) %>% paste(collapse = ""), "\n")
+  cat(paste(rep("-", 60), collapse = ""), "\n")
   print(optimal_result$best_models[, c("p", "R2", "Mp", "subset_str")])
   
   cat("\n")
