@@ -98,22 +98,10 @@ meta.json                                   (R², M_p, AIC, BIC)
 | S14 | Heteroscedastic Errors | Varying noise | Efficiency loss |
 | S15 | Group Sparsity | Correlated blocks | Group selection |
 
-## Selection Rules
-
-### Rule A: Maximum M_p
-- **Method:** Select p that maximizes M_p
-- **Strength:** Simple, interpretable
-- **Weakness:** Can fail with constant M_p
-
-### Rule B: Steep Drop
+## Selection Rule
 - **Method:** Detect largest drop in M_p curve
 - **Strength:** Robust to noise
 - **Weakness:** May over-select if no clear drop
-
-### Rule C: Elbow Detection
-- **Method:** Find "elbow" in M_p vs p curve
-- **Strength:** Balances parsimony and fit
-- **Weakness:** Subjective definition of "elbow"
 
 ### Comparisons
 - **AIC:** Akaike Information Criterion
@@ -230,7 +218,7 @@ f1_scores <- sapply(results, function(r) {
 
 plot(snr_values, f1_scores, type = "b",
      xlab = "SNR", ylab = "F1 Score",
-     main = "Rule A Performance vs SNR")
+     main = "M_p Performance vs SNR")
 ```
 
 ## Command-Line Usage
@@ -264,31 +252,6 @@ print(saved_results$models)         # All models
 # Re-generate plots
 plot_mp_curves(saved_results$models)
 ```
-
-## Interpreting Results
-
-### Good Performance Indicators
-- ✓ F1 score > 0.8
-- ✓ Exact match = TRUE
-- ✓ |p* - p_true| ≤ 1
-- ✓ Low Hamming distance
-- ✓ High precision and recall
-
-### Warning Signs
-- ⚠ M_p curve is degenerate
-- ⚠ Large gap between p* and p_true
-- ⚠ Low F1 score (< 0.5)
-- ⚠ Many false positives or false negatives
-- ⚠ Unstable selections across repetitions
-
-### Summary Report
-Always check `summary.txt` for:
-1. Configuration parameters
-2. Selection results (all rules)
-3. Recovery metrics
-4. Expected vs actual behavior
-5. Interpretation notes
-
 ## Troubleshooting
 
 ### Error: "package 'jsonlite' not available"
@@ -308,39 +271,3 @@ Check if ggplot2 is installed (optional, falls back to base R):
 ```r
 install.packages("ggplot2")
 ```
-
-### Out of memory with high-dimensional scenarios
-Use limited enumeration:
-```r
-config <- scenario_s8_high_dimensional()
-config$enumeration_strategy <- "cardinality_limited"
-config$max_p <- 10  # Limit model complexity
-result <- run_experiment(config)
-```
-
-## Best Practices
-
-1. **Start small:** Test with S2 (baseline) before running all scenarios
-2. **Use repetitions:** Run n_reps ≥ 5 for stability analysis
-3. **Check diagnostics:** Always review summary.txt and plots
-4. **Save configurations:** Keep meta.json for reproducibility
-5. **Compare rules:** Don't rely on single selection rule
-6. **Validate assumptions:** Check if scenario assumptions hold
-
-## Performance Notes
-
-- **Full enumeration:** Feasible up to p_max ≈ 20 (2^20 ≈ 1M models)
-- **Cardinality-limited:** Use for p_max > 20, set reasonable max_p
-- **Random sampling:** For very high dimensions (p_max > 50)
-- **Parallel processing:** Not yet implemented (future enhancement)
-
-## References
-
-For methodology details, see:
-- `IMPLEMENTATION_STATUS.md` - Technical specifications
-- `README.md` - Original project overview
-- `QUICKSTART.md` - Basic usage examples
-
-## Contact
-
-For issues, questions, or contributions, please open an issue on GitHub.
