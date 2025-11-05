@@ -1,0 +1,16 @@
+{
+  "scenario_name": "S3_random_order_zero",
+  "scenario_description": "Random ordering of active predictors (zero noise)",
+  "n": 100,
+  "p_max": 10,
+  "beta_spec": "random",
+  "sigma_eps": 0,
+  "X_dist": "normal",
+  "correlation_structure": "identity",
+  "rho": 0,
+  "seed": 123,
+  "expected_behavior": "Should match S2_zero if truly order-invariant",
+  "p_true": 3,
+  "timestamp": "2025-11-05 16:24:41",
+  "R_version": "R version 4.5.1 (2025-06-13)"
+}

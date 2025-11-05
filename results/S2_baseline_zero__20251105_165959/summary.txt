@@ -1,0 +1,78 @@
+====================================================================== 
+M_p MODEL SELECTION EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S2_baseline_zero 
+Description: Descending signal strength (zero noise) 
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 3
+  Noise level (sigma_eps): 0.000
+  Predictor distribution: normal
+  Correlation structure: identity
+  Random seed: 123
+
+RESULTS OVERVIEW
+---------------------------------------------------------------------- 
+  Models evaluated: 1023
+  R² range: [0.0005, 1.0000]
+  M_p range: [0.0005, 0.4415]
+  Execution time: 1.37 seconds
+
+MODEL SELECTION RESULTS
+---------------------------------------------------------------------- 
+  M_p:                  p* = 2
+  AIC:                  p* = 3
+  BIC:                  p* = 3
+  True p:               p_true = 3
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+    p     R2     Mp     AIC     BIC           subset_str
+1   1 0.4415 0.4415   270.9   278.8                    1
+2   2 0.8520 0.4260   140.1   150.5                  1,2
+3   3 1.0000 0.3333 -6867.6 -6854.6                1,2,3
+4   4 1.0000 0.2500 -6865.8 -6850.2              1,2,3,4
+5   5 1.0000 0.2000 -6864.1 -6845.8            1,2,3,4,5
+6   6 1.0000 0.1667 -6862.1 -6841.3          1,2,3,4,5,6
+7   7 1.0000 0.1429 -6860.1 -6836.7        1,2,3,4,5,6,7
+8   8 1.0000 0.1250 -6859.1 -6833.0      1,2,3,4,5,6,7,8
+9   9 1.0000 0.1111 -6857.3 -6828.6    1,2,3,4,5,6,7,8,9
+10 10 1.0000 0.1000 -6855.9 -6824.6 1,2,3,4,5,6,7,8,9,10 
+
+VARIABLE SELECTION PERFORMANCE
+---------------------------------------------------------------------- 
+  M_p:
+    p* = 2 (true: 3, diff: -1)
+    TP=2, FP=0, FN=1
+    Precision: 1.000, Recall: 0.667, F1: 0.800
+    Hamming distance: 1, Exact match: FALSE
+    Selected: 1,2
+
+  AIC:
+    p* = 3 (true: 3, diff: +0)
+    TP=3, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3
+
+  BIC:
+    p* = 3 (true: 3, diff: +0)
+    TP=3, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3
+
+EXPECTED BEHAVIOR
+---------------------------------------------------------------------- 
+   M_p should select p = 3 (deterministic) 
+
+INTERPRETATION
+---------------------------------------------------------------------- 
+  ~ M_p close to true complexity (off by 1 )
+
+====================================================================== 
+End of summary

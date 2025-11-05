@@ -32,6 +32,8 @@ run_single_scenario <- function(scenario_id = "S2", n_reps = 1, seed = 123) {
     S1 = "s1",
     S2 = "s2", 
     S3 = "s3",
+    S2_ZERO = "s2_zero",
+    S3_ZERO = "s3_zero",
     S4 = "s4",
     S5 = "s5",
     S6 = "s6_ar1",
@@ -47,7 +49,7 @@ run_single_scenario <- function(scenario_id = "S2", n_reps = 1, seed = 123) {
   
   scenario_key <- scenario_map[[scenario_id]]
   if (is.null(scenario_key)) {
-    stop(sprintf("Unknown scenario: %s. Valid scenarios: S1-S14", scenario_id))
+    stop(sprintf("Unknown scenario: %s. Valid scenarios: S1-S14, S2_ZERO, S3_ZERO", scenario_id))
   }
   
   config <- scenarios[[scenario_key]]

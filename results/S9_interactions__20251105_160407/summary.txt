@@ -1,0 +1,79 @@
+====================================================================== 
+M_p MODEL SELECTION EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S9_interactions 
+Description: Model with interaction terms 
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 4
+  Noise level (sigma_eps): 0.200
+  Predictor distribution: normal
+  Correlation structure: identity
+  Random seed: 123
+
+RESULTS OVERVIEW
+---------------------------------------------------------------------- 
+  Models evaluated: 2047
+  R² range: [0.0001, 0.9753]
+  M_p range: [0.0001, 0.4489]
+  Execution time: 1.53 seconds
+
+MODEL SELECTION RESULTS
+---------------------------------------------------------------------- 
+  M_p:                  p* = 2
+  AIC:                  p* = 5
+  BIC:                  p* = 3
+  True p:               p_true = 4
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+    p     R2      Mp    AIC     BIC              subset_str
+1   1 0.4489 0.44894 271.76 279.577                       1
+2   2 0.8464 0.42319 146.03 156.446                     1,2
+3   3 0.9724 0.32413 -23.64 -10.615                   1,2,3
+4   4 0.9735 0.24336 -25.54  -9.907                 1,2,3,4
+5   5 0.9745 0.19489 -27.42  -9.184              1,2,3,4,11
+6   6 0.9748 0.16247 -26.78  -5.938           1,2,3,4,10,11
+7   7 0.9751 0.13930 -25.89  -2.441         1,2,3,4,7,10,11
+8   8 0.9752 0.12191 -24.54   1.511       1,2,3,4,7,9,10,11
+9   9 0.9753 0.10837 -22.72   5.938     1,2,3,4,7,8,9,10,11
+10 10 0.9753 0.09753 -20.86  10.403   1,2,3,4,5,7,8,9,10,11
+11 11 0.9753 0.08867 -18.88  14.990 1,2,3,4,5,6,7,8,9,10,11 
+
+VARIABLE SELECTION PERFORMANCE
+---------------------------------------------------------------------- 
+  M_p:
+    p* = 2 (true: 4, diff: -2)
+    TP=2, FP=0, FN=2
+    Precision: 1.000, Recall: 0.500, F1: 0.667
+    Hamming distance: 2, Exact match: FALSE
+    Selected: 1,2
+
+  AIC:
+    p* = 5 (true: 4, diff: +1)
+    TP=4, FP=1, FN=0
+    Precision: 0.800, Recall: 1.000, F1: 0.889
+    Hamming distance: 1, Exact match: FALSE
+    Selected: 1,2,3,4,11
+
+  BIC:
+    p* = 3 (true: 4, diff: -1)
+    TP=3, FP=0, FN=1
+    Precision: 1.000, Recall: 0.750, F1: 0.857
+    Hamming distance: 1, Exact match: FALSE
+    Selected: 1,2,3
+
+EXPECTED BEHAVIOR
+---------------------------------------------------------------------- 
+   Should select interaction if included in candidate set 
+
+INTERPRETATION
+---------------------------------------------------------------------- 
+  ✗ M_p missed the true complexity by 2 
+
+====================================================================== 
+End of summary

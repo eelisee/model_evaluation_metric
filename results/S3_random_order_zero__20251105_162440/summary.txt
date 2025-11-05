@@ -1,0 +1,78 @@
+====================================================================== 
+M_p MODEL SELECTION EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S3_random_order_zero 
+Description: Random ordering of active predictors (zero noise) 
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 3
+  Noise level (sigma_eps): 0.000
+  Predictor distribution: normal
+  Correlation structure: identity
+  Random seed: 123
+
+RESULTS OVERVIEW
+---------------------------------------------------------------------- 
+  Models evaluated: 1023
+  R² range: [0.0005, 1.0000]
+  M_p range: [0.0005, 0.5839]
+  Execution time: 1.24 seconds
+
+MODEL SELECTION RESULTS
+---------------------------------------------------------------------- 
+  M_p:                  p* = 1
+  AIC:                  p* = 3
+  BIC:                  p* = 3
+  True p:               p_true = 3
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+    p     R2     Mp   AIC     BIC           subset_str
+1   1 0.5839 0.5839   260   267.8                    7
+2   2 0.8889 0.4444   130   140.4                  3,7
+3   3 1.0000 0.3333 -6805 -6791.7                1,3,7
+4   4 1.0000 0.2500 -6563 -6547.0              1,2,3,7
+5   5 1.0000 0.2000 -6614 -6595.7            1,2,3,4,7
+6   6 1.0000 0.1667 -6642 -6621.2          1,2,3,4,5,7
+7   7 1.0000 0.1429 -6727 -6703.1        1,2,3,4,5,6,7
+8   8 1.0000 0.1250 -6725 -6699.1      1,2,3,4,5,6,7,8
+9   9 1.0000 0.1111 -6723 -6694.8    1,2,3,4,5,6,7,8,9
+10 10 1.0000 0.1000 -6722 -6691.0 1,2,3,4,5,6,7,8,9,10 
+
+VARIABLE SELECTION PERFORMANCE
+---------------------------------------------------------------------- 
+  M_p:
+    p* = 1 (true: 3, diff: -2)
+    TP=1, FP=0, FN=2
+    Precision: 1.000, Recall: 0.333, F1: 0.500
+    Hamming distance: 2, Exact match: FALSE
+    Selected: 7
+
+  AIC:
+    p* = 3 (true: 3, diff: +0)
+    TP=3, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,3,7
+
+  BIC:
+    p* = 3 (true: 3, diff: +0)
+    TP=3, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,3,7
+
+EXPECTED BEHAVIOR
+---------------------------------------------------------------------- 
+   Should match S2_zero if truly order-invariant 
+
+INTERPRETATION
+---------------------------------------------------------------------- 
+  ✗ M_p missed the true complexity by 2 
+
+====================================================================== 
+End of summary

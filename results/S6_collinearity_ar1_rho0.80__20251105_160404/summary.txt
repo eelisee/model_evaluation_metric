@@ -1,0 +1,79 @@
+====================================================================== 
+M_p MODEL SELECTION EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S6_collinearity_ar1_rho0.80 
+Description: Correlated predictors (ar1, rho=0.80) 
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 3
+  Noise level (sigma_eps): 0.200
+  Predictor distribution: normal
+  Correlation structure: ar1
+  Correlation parameter (rho): 0.800
+  Random seed: 123
+
+RESULTS OVERVIEW
+---------------------------------------------------------------------- 
+  Models evaluated: 1023
+  R² range: [0.0167, 0.9892]
+  M_p range: [0.0149, 0.8818]
+  Execution time: 1.10 seconds
+
+MODEL SELECTION RESULTS
+---------------------------------------------------------------------- 
+  M_p:                  p* = 1
+  AIC:                  p* = 4
+  BIC:                  p* = 3
+  True p:               p_true = 3
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+    p     R2      Mp    AIC      BIC           subset_str
+1   1 0.8818 0.88177 203.30 211.1203                    2
+2   2 0.9708 0.48538  65.58  75.9966                  1,2
+3   3 0.9883 0.32942 -23.64 -10.6150                1,2,3
+4   4 0.9887 0.24718 -25.54  -9.9074              1,2,3,4
+5   5 0.9889 0.19778 -25.09  -6.8550            1,2,3,4,8
+6   6 0.9890 0.16483 -24.05  -3.2072         1,2,3,8,9,10
+7   7 0.9891 0.14130 -23.23   0.2174       1,2,3,4,8,9,10
+8   8 0.9892 0.12365 -21.64   4.4083     1,2,3,5,6,8,9,10
+9   9 0.9892 0.10991 -20.02   8.6370   1,2,3,4,5,6,8,9,10
+10 10 0.9892 0.09892 -18.02  13.2405 1,2,3,4,5,6,7,8,9,10 
+
+VARIABLE SELECTION PERFORMANCE
+---------------------------------------------------------------------- 
+  M_p:
+    p* = 1 (true: 3, diff: -2)
+    TP=1, FP=0, FN=2
+    Precision: 1.000, Recall: 0.333, F1: 0.500
+    Hamming distance: 2, Exact match: FALSE
+    Selected: 2
+
+  AIC:
+    p* = 4 (true: 3, diff: +1)
+    TP=3, FP=1, FN=0
+    Precision: 0.750, Recall: 1.000, F1: 0.857
+    Hamming distance: 1, Exact match: FALSE
+    Selected: 1,2,3,4
+
+  BIC:
+    p* = 3 (true: 3, diff: +0)
+    TP=3, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3
+
+EXPECTED BEHAVIOR
+---------------------------------------------------------------------- 
+   M_p may prefer fewer variables; selection less stable 
+
+INTERPRETATION
+---------------------------------------------------------------------- 
+  ✗ M_p missed the true complexity by 2 
+
+====================================================================== 
+End of summary

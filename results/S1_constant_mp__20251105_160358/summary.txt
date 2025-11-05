@@ -1,0 +1,78 @@
+====================================================================== 
+M_p MODEL SELECTION EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S1_constant_mp 
+Description: Constant incremental variance (degenerate M_p) 
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 10
+  Noise level (sigma_eps): 0.000
+  Predictor distribution: normal
+  Correlation structure: identity
+  Random seed: 123
+
+RESULTS OVERVIEW
+---------------------------------------------------------------------- 
+  Models evaluated: 1023
+  R² range: [0.0398, 1.0000]
+  M_p range: [0.0398, 0.1678]
+  Execution time: 1.47 seconds
+
+MODEL SELECTION RESULTS
+---------------------------------------------------------------------- 
+  M_p:                  p* = 2
+  AIC:                  p* = 10
+  BIC:                  p* = 10
+  True p:               p_true = 10
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+    p     R2     Mp      AIC      BIC           subset_str
+1   1 0.1678 0.1678   256.33   264.15                    6
+2   2 0.3305 0.1653   236.58   247.00                  4,6
+3   3 0.4463 0.1488   219.60   232.62               6,8,10
+4   4 0.5391 0.1348   203.24   218.87             2,6,8,10
+5   5 0.6162 0.1232   186.93   205.17           4,6,7,9,10
+6   6 0.6999 0.1166   164.35   185.19         4,6,7,8,9,10
+7   7 0.7756 0.1108   137.27   160.72       3,4,6,7,8,9,10
+8   8 0.8421 0.1053   104.13   130.18     2,3,4,6,7,8,9,10
+9   9 0.9128 0.1014    46.78    75.44   2,3,4,5,6,7,8,9,10
+10 10 1.0000 0.1000 -6795.35 -6764.09 1,2,3,4,5,6,7,8,9,10 
+
+VARIABLE SELECTION PERFORMANCE
+---------------------------------------------------------------------- 
+  M_p:
+    p* = 2 (true: 10, diff: -8)
+    TP=2, FP=0, FN=8
+    Precision: 1.000, Recall: 0.200, F1: 0.333
+    Hamming distance: 8, Exact match: FALSE
+    Selected: 4,6
+
+  AIC:
+    p* = 10 (true: 10, diff: +0)
+    TP=10, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3,4,5,6,7,8,9,10
+
+  BIC:
+    p* = 10 (true: 10, diff: +0)
+    TP=10, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3,4,5,6,7,8,9,10
+
+EXPECTED BEHAVIOR
+---------------------------------------------------------------------- 
+   M_p constant; Rule A ties; Rule B convention-based 
+
+INTERPRETATION
+---------------------------------------------------------------------- 
+  ✗ M_p missed the true complexity by 8 
+
+====================================================================== 
+End of summary

@@ -1,0 +1,78 @@
+====================================================================== 
+M_p MODEL SELECTION EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S13_heteroscedastic_errors 
+Description: Non-constant error variance 
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 3
+  Noise level (sigma_eps): 0.200
+  Predictor distribution: normal
+  Correlation structure: identity
+  Random seed: 123
+
+RESULTS OVERVIEW
+---------------------------------------------------------------------- 
+  Models evaluated: 1023
+  R² range: [0.0002, 0.9549]
+  M_p range: [0.0002, 0.4471]
+  Execution time: 1.25 seconds
+
+MODEL SELECTION RESULTS
+---------------------------------------------------------------------- 
+  M_p:                  p* = 2
+  AIC:                  p* = 4
+  BIC:                  p* = 3
+  True p:               p_true = 3
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+    p     R2      Mp    AIC    BIC           subset_str
+1   1 0.4471 0.44707 274.05 281.87                    1
+2   2 0.8341 0.41703 155.69 166.11                  1,2
+3   3 0.9512 0.31708  35.21  48.23                1,2,3
+4   4 0.9529 0.23823  33.71  49.34             1,2,3,10
+5   5 0.9538 0.19075  33.90  52.13           1,2,3,4,10
+6   6 0.9544 0.15906  34.62  55.47         1,2,3,4,7,10
+7   7 0.9546 0.13638  36.02  59.47       1,2,3,4,7,8,10
+8   8 0.9547 0.11934  37.81  63.86     1,2,3,4,5,7,8,10
+9   9 0.9548 0.10609  39.57  68.22   1,2,3,4,5,6,7,8,10
+10 10 0.9549 0.09549  41.52  72.78 1,2,3,4,5,6,7,8,9,10 
+
+VARIABLE SELECTION PERFORMANCE
+---------------------------------------------------------------------- 
+  M_p:
+    p* = 2 (true: 3, diff: -1)
+    TP=2, FP=0, FN=1
+    Precision: 1.000, Recall: 0.667, F1: 0.800
+    Hamming distance: 1, Exact match: FALSE
+    Selected: 1,2
+
+  AIC:
+    p* = 4 (true: 3, diff: +1)
+    TP=3, FP=1, FN=0
+    Precision: 0.750, Recall: 1.000, F1: 0.857
+    Hamming distance: 1, Exact match: FALSE
+    Selected: 1,2,3,10
+
+  BIC:
+    p* = 3 (true: 3, diff: +0)
+    TP=3, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3
+
+EXPECTED BEHAVIOR
+---------------------------------------------------------------------- 
+   OLS variance assumptions violated 
+
+INTERPRETATION
+---------------------------------------------------------------------- 
+  ~ M_p close to true complexity (off by 1 )
+
+====================================================================== 
+End of summary

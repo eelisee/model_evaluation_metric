@@ -155,6 +155,10 @@ generate_data_advanced <- function(config) {
   n <- config$n
   p_max <- config$p_max
   
+  # Flag to track if we need to permute X columns later
+  permute_X_columns <- FALSE
+  column_permutation <- NULL
+  
   # Parse beta_spec
   if (is.character(config$beta_spec)) {
     if (config$beta_spec == "constant") {
@@ -165,10 +169,17 @@ generate_data_advanced <- function(config) {
       p_true <- 3
       true_beta <- c(1.0, 0.8, 0.5, rep(0, p_max - p_true))
     } else if (config$beta_spec == "random") {
-      # Random permutation
+      # Random permutation: Generate X first, then permute columns
+      # This ensures S2 and S3 use the same X matrix (just relabeled)
       p_true <- 3
       beta_vals <- c(1.0, 0.8, 0.5, rep(0, p_max - p_true))
-      true_beta <- sample(beta_vals)
+      
+      # Store the permutation to apply to X columns later
+      permute_X_columns <- TRUE
+      column_permutation <- sample(1:p_max)
+      
+      # Beta stays in standard order for now
+      true_beta <- beta_vals
     } else {
       stop("Unknown beta_spec string")
     }
@@ -233,6 +244,19 @@ generate_data_advanced <- function(config) {
     X_obs <- X_true + measurement_error
   } else {
     X_obs <- X_true
+  }
+  
+  # Apply column permutation if needed (for "random" beta_spec)
+  # This ensures S2 and S3 use the same underlying X, just with relabeled columns
+  if (permute_X_columns && !is.null(column_permutation)) {
+    X_obs <- X_obs[, column_permutation, drop = FALSE]
+    
+    # Update true_beta to reflect the permutation
+    # The coefficient that was at position i is now at position column_permutation[i]
+    # We need to create a new beta vector where beta[column_permutation[i]] = old_beta[i]
+    true_beta_permuted <- numeric(p_max)
+    true_beta_permuted[column_permutation] <- true_beta
+    true_beta <- true_beta_permuted
   }
   
   # Generate base linear predictor

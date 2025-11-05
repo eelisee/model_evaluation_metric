@@ -1,0 +1,39 @@
+{
+  "scenario_name": "S4_heteroskedastic_predictors",
+  "scenario_description": "Predictors with different variances",
+  "n": 100,
+  "p_max": 10,
+  "beta_spec": [
+    1,
+    0.8,
+    0.5,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "sigma_eps": 0.2,
+  "X_dist": "normal",
+  "correlation_structure": "identity",
+  "rho": 0,
+  "feature_sigmas": [
+    1.5731,
+    1.1195,
+    1.8026,
+    0.8739,
+    1.9725,
+    0.8169,
+    1.597,
+    0.773,
+    1.8037,
+    0.5814
+  ],
+  "seed": 123,
+  "expected_behavior": "M_p should be robust to scaling",
+  "p_true": 3,
+  "timestamp": "2025-11-05 16:04:02",
+  "R_version": "R version 4.5.1 (2025-06-13)"
+}

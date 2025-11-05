@@ -1,0 +1,78 @@
+====================================================================== 
+M_p MODEL SELECTION EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S8_nonlinear 
+Description: Nonlinear true model (OLS misspecification) 
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 3
+  Noise level (sigma_eps): 0.200
+  Predictor distribution: normal
+  Correlation structure: identity
+  Random seed: 123
+
+RESULTS OVERVIEW
+---------------------------------------------------------------------- 
+  Models evaluated: 1023
+  R² range: [0.0000, 0.9145]
+  M_p range: [0.0000, 0.4573]
+  Execution time: 1.18 seconds
+
+MODEL SELECTION RESULTS
+---------------------------------------------------------------------- 
+  M_p:                  p* = 2
+  AIC:                  p* = 3
+  BIC:                  p* = 3
+  True p:               p_true = 3
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+    p     R2      Mp   AIC   BIC           subset_str
+1   1 0.4573 0.45726 283.4 291.2                    1
+2   2 0.7752 0.38758 197.3 207.7                  1,2
+3   3 0.9108 0.30361 106.8 119.8                1,2,3
+4   4 0.9122 0.22804 107.3 122.9              1,2,3,5
+5   5 0.9134 0.18268 107.9 126.1            1,2,3,6,8
+6   6 0.9140 0.15233 109.2 130.0          1,2,3,5,6,8
+7   7 0.9143 0.13061 110.9 134.3        1,2,3,4,5,6,8
+8   8 0.9144 0.11430 112.7 138.8     1,2,3,4,5,6,8,10
+9   9 0.9144 0.10160 114.7 143.3   1,2,3,4,5,6,8,9,10
+10 10 0.9145 0.09145 116.6 147.9 1,2,3,4,5,6,7,8,9,10 
+
+VARIABLE SELECTION PERFORMANCE
+---------------------------------------------------------------------- 
+  M_p:
+    p* = 2 (true: 3, diff: -1)
+    TP=2, FP=0, FN=1
+    Precision: 1.000, Recall: 0.667, F1: 0.800
+    Hamming distance: 1, Exact match: FALSE
+    Selected: 1,2
+
+  AIC:
+    p* = 3 (true: 3, diff: +0)
+    TP=3, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3
+
+  BIC:
+    p* = 3 (true: 3, diff: +0)
+    TP=3, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3
+
+EXPECTED BEHAVIOR
+---------------------------------------------------------------------- 
+   Linear OLS misspecified; R² may not reach 1 
+
+INTERPRETATION
+---------------------------------------------------------------------- 
+  ~ M_p close to true complexity (off by 1 )
+
+====================================================================== 
+End of summary

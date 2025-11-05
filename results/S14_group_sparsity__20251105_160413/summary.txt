@@ -1,0 +1,79 @@
+====================================================================== 
+M_p MODEL SELECTION EXPERIMENT SUMMARY
+====================================================================== 
+
+SCENARIO: S14_group_sparsity 
+Description: Grouped active variables 
+
+CONFIGURATION
+---------------------------------------------------------------------- 
+  Sample size (n): 100
+  Predictors (p_max): 10
+  True active predictors (p_true): 5
+  Noise level (sigma_eps): 0.200
+  Predictor distribution: normal
+  Correlation structure: block
+  Correlation parameter (rho): 0.700
+  Random seed: 123
+
+RESULTS OVERVIEW
+---------------------------------------------------------------------- 
+  Models evaluated: 1023
+  R² range: [0.0000, 0.9922]
+  M_p range: [0.0000, 0.7985]
+  Execution time: 1.05 seconds
+
+MODEL SELECTION RESULTS
+---------------------------------------------------------------------- 
+  M_p:                  p* = 1
+  AIC:                  p* = 5
+  BIC:                  p* = 5
+  True p:               p_true = 5
+
+BEST MODELS BY CARDINALITY
+---------------------------------------------------------------------- 
+    p     R2      Mp    AIC      BIC           subset_str
+1   1 0.7985 0.79854 289.77 297.5856                    1
+2   2 0.9443 0.47214 163.24 173.6570                  1,2
+3   3 0.9703 0.32344 102.27 115.2983                1,2,3
+4   4 0.9852 0.24629  34.92  50.5473              1,2,3,4
+5   5 0.9919 0.19838 -23.76  -5.5194            1,2,3,4,5
+6   6 0.9920 0.16533 -22.88  -2.0411         1,2,3,4,5,10
+7   7 0.9922 0.14174 -22.77   0.6772       1,2,3,4,5,6,10
+8   8 0.9922 0.12402 -21.34   4.7077     1,2,3,4,5,6,8,10
+9   9 0.9922 0.11025 -19.98   8.6778   1,2,3,4,5,6,8,9,10
+10 10 0.9922 0.09922 -18.02  13.2405 1,2,3,4,5,6,7,8,9,10 
+
+VARIABLE SELECTION PERFORMANCE
+---------------------------------------------------------------------- 
+  M_p:
+    p* = 1 (true: 5, diff: -4)
+    TP=1, FP=0, FN=4
+    Precision: 1.000, Recall: 0.200, F1: 0.333
+    Hamming distance: 4, Exact match: FALSE
+    Selected: 1
+
+  AIC:
+    p* = 5 (true: 5, diff: +0)
+    TP=5, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3,4,5
+
+  BIC:
+    p* = 5 (true: 5, diff: +0)
+    TP=5, FP=0, FN=0
+    Precision: 1.000, Recall: 1.000, F1: 1.000
+    Hamming distance: 0, Exact match: TRUE
+    Selected: 1,2,3,4,5
+
+EXPECTED BEHAVIOR
+---------------------------------------------------------------------- 
+   Test group selection performance 
+
+INTERPRETATION
+---------------------------------------------------------------------- 
+  ✗ M_p missed the true complexity by 4 
+
+====================================================================== 
+End of summary

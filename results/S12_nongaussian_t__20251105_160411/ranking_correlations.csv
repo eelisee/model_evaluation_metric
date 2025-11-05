@@ -1,0 +1,9 @@
+"metric","correlation"
+"Mp_vs_R2",0.763121696575629
+"Mp_vs_adjR2",0.806074698369737
+"Mp_vs_AIC",0.83128168023426
+"Mp_vs_BIC",0.851065002406729
+"Mp_vs_truth_closeness",-0.699244110115063
+"R2_vs_truth_closeness",-0.397999259440174
+"AIC_vs_truth_closeness",-0.517588138926297
+"BIC_vs_truth_closeness",-0.576876362310585

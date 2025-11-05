@@ -1,0 +1,28 @@
+{
+  "scenario_name": "S14_group_sparsity",
+  "scenario_description": "Grouped active variables",
+  "n": 100,
+  "p_max": 10,
+  "beta_spec": [
+    1,
+    0.8,
+    0.5,
+    0.3,
+    0.3,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "sigma_eps": 0.2,
+  "X_dist": "normal",
+  "correlation_structure": "block",
+  "rho": 0.7,
+  "block_size": 5,
+  "seed": 123,
+  "expected_behavior": "Test group selection performance",
+  "p_true": 5,
+  "timestamp": "2025-11-05 16:04:14",
+  "R_version": "R version 4.5.1 (2025-06-13)"
+}

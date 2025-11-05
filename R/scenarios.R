@@ -84,6 +84,54 @@ scenario_s3_random_order <- function(n = 100, p_max = 10, sigma_eps = 0.2, seed 
 }
 
 
+#' S2_ZERO: Descending Signal Strength (Zero Noise)
+#'
+#' Same as S2 but with zero noise (sigma_eps = 0.0)
+#' Tests whether deterministic case recovers true model with exhaustive search
+#'
+#' @export
+scenario_s2_baseline_zero <- function(n = 100, p_max = 10, seed = NULL) {
+  list(
+    scenario_name = "S2_baseline_zero",
+    scenario_description = "Descending signal strength (zero noise)",
+    n = n,
+    p_max = p_max,
+    beta_spec = c(1.0, 0.8, 0.5, rep(0, p_max - 3)),
+    sigma_eps = 0.0,
+    X_dist = "normal",
+    correlation_structure = "identity",
+    rho = 0,
+    seed = seed,
+    expected_behavior = "M_p should select p = 3 (deterministic)",
+    p_true = 3
+  )
+}
+
+
+#' S3_ZERO: Random Ordered Signals (Zero Noise)
+#'
+#' Same as S3 but with zero noise (sigma_eps = 0.0)
+#' Tests whether deterministic case is truly order-invariant
+#'
+#' @export
+scenario_s3_random_order_zero <- function(n = 100, p_max = 10, seed = NULL) {
+  list(
+    scenario_name = "S3_random_order_zero",
+    scenario_description = "Random ordering of active predictors (zero noise)",
+    n = n,
+    p_max = p_max,
+    beta_spec = "random",  # Special string handled by generate_data_advanced
+    sigma_eps = 0.0,
+    X_dist = "normal",
+    correlation_structure = "identity",
+    rho = 0,
+    seed = seed,
+    expected_behavior = "Should match S2_zero if truly order-invariant",
+    p_true = 3
+  )
+}
+
+
 #' S4: Heteroskedastic Predictors (Different Variances)
 #'
 #' Predictors have different variances
@@ -373,42 +421,47 @@ scenario_s14_group_sparsity <- function(n = 100, p_max = 10, sigma_eps = 0.2,
 #' @export
 get_all_scenarios <- function(include_sweeps = FALSE) {
   
+  # Use the same base seed for all scenarios to make results comparable
+  base_seed <- 123
+  
   scenarios <- list(
-    s1 = scenario_s1_constant(),
-    s2 = scenario_s2_baseline(),
-    s3 = scenario_s3_random_order(),
-    s4 = scenario_s4_hetero_predictors(),
-    s5 = scenario_s5_nonzero_means(),
-    s6_ar1 = scenario_s6_collinearity(correlation_structure = "ar1", rho = 0.8),
-    s7_snr = scenario_s7_weak_signal(sigma_eps = 1.0),
-    s8_nonlin = scenario_s8_nonlinear(),
-    s9_interact = scenario_s9_interactions(),
-    s10_redund = scenario_s10_redundant(),
-    s11_meas = scenario_s11_measurement_error(error_sd = 0.3),
-    s12_tdist = scenario_s12_nongaussian(dist_type = "t"),
-    s13_hetero = scenario_s13_heteroscedastic_errors(),
-    s14_group = scenario_s14_group_sparsity()
+    s1 = scenario_s1_constant(seed = base_seed),
+    s2 = scenario_s2_baseline(seed = base_seed),
+    s3 = scenario_s3_random_order(seed = base_seed),
+    s2_zero = scenario_s2_baseline_zero(seed = base_seed),
+    s3_zero = scenario_s3_random_order_zero(seed = base_seed),
+    s4 = scenario_s4_hetero_predictors(seed = base_seed),
+    s5 = scenario_s5_nonzero_means(seed = base_seed),
+    s6_ar1 = scenario_s6_collinearity(correlation_structure = "ar1", rho = 0.8, seed = base_seed),
+    s7_snr = scenario_s7_weak_signal(sigma_eps = 1.0, seed = base_seed),
+    s8_nonlin = scenario_s8_nonlinear(seed = base_seed),
+    s9_interact = scenario_s9_interactions(seed = base_seed),
+    s10_redund = scenario_s10_redundant(seed = base_seed),
+    s11_meas = scenario_s11_measurement_error(error_sd = 0.3, seed = base_seed),
+    s12_tdist = scenario_s12_nongaussian(dist_type = "t", seed = base_seed),
+    s13_hetero = scenario_s13_heteroscedastic_errors(seed = base_seed),
+    s14_group = scenario_s14_group_sparsity(seed = base_seed)
   )
   
   if (include_sweeps) {
-    # Add parameter sweeps
+    # Add parameter sweeps (using same base seed for comparability)
     
     # SNR sweep
     for (sigma in c(0.1, 0.5, 2.0)) {
       name <- sprintf("s7_snr_sigma%.1f", sigma)
-      scenarios[[name]] <- scenario_s7_weak_signal(sigma_eps = sigma)
+      scenarios[[name]] <- scenario_s7_weak_signal(sigma_eps = sigma, seed = base_seed)
     }
     
     # Collinearity sweep
     for (rho in c(0.3, 0.6, 0.9)) {
       name <- sprintf("s6_ar1_rho%.1f", rho)
-      scenarios[[name]] <- scenario_s6_collinearity(rho = rho)
+      scenarios[[name]] <- scenario_s6_collinearity(rho = rho, seed = base_seed)
     }
     
     # Non-Gaussian variants
     for (dist in c("t", "lognormal")) {
       name <- sprintf("s12_%s", dist)
-      scenarios[[name]] <- scenario_s12_nongaussian(dist_type = dist)
+      scenarios[[name]] <- scenario_s12_nongaussian(dist_type = dist, seed = base_seed)
     }
   }
   
