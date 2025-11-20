@@ -489,7 +489,10 @@ get_scenario_description <- function(scenario_name) {
     s11 = "Measurement error",
     s12 = "Non-Gaussian predictors",
     s13 = "Heteroscedastic errors",
-    s14 = "Group sparsity"
+    s14 = "Group sparsity",
+    s15 = "Decoupled (AR1 + random effects)",
+    s16 = "Decoupled (Block + random effects)",
+    s17 = "Decoupled (Compound + random effects)"
   )
   
   # Try to match prefix
@@ -500,4 +503,100 @@ get_scenario_description <- function(scenario_name) {
   }
   
   return("Unknown scenario")
+}
+
+
+# ============================================================================
+# NEUE ENTKOPPELTE SZENARIEN
+# ============================================================================
+# Diese Szenarien implementieren die Entkopplung zwischen X-Struktur und β
+
+#' S15: Decoupled AR(1) Structure with Random Effects
+#'
+#' ✅ ENTKOPPELT: X hat AR(1)-Struktur, β-Support und Größe sind unabhängig
+#'
+#' @param n Sample size (default 100)
+#' @param p_max Number of predictors (default 10)
+#' @param p_true Number of active predictors (default 5)
+#' @param sigma_eps Noise level (default 0.2)
+#' @param rho AR(1) correlation (default 0.7)
+#' @param beta_sd SD for beta coefficient distribution (default 1.0)
+#' @param seed Random seed
+#' @export
+scenario_s15_decoupled_ar1 <- function(n = 100, p_max = 10, p_true = 5, 
+                                       sigma_eps = 0.2, rho = 0.7, 
+                                       beta_sd = 1.0, seed = NULL) {
+  list(
+    scenario_name = sprintf("S15_decoupled_ar1_rho%.2f", rho),
+    scenario_description = sprintf("Decoupled: AR(1) structure (rho=%.2f) + random beta", rho),
+    n = n,
+    p_max = p_max,
+    p_true = p_true,
+    beta_spec = "decoupled_random",  # ← NEU
+    beta_sd = beta_sd,                # ← β ~ N(0, beta_sd^2)
+    sigma_eps = sigma_eps,
+    X_dist = "normal",
+    correlation_structure = "ar1",   # ← Struktur kommt von X
+    rho = rho,
+    seed = seed,
+    expected_behavior = "Realistic: X structure independent of beta",
+    notes = "Support positions random, effect sizes from N(0,1)"
+  )
+}
+
+
+#' S16: Decoupled Block Structure with Fixed Magnitude Effects
+#'
+#' ✅ ENTKOPPELT: X hat Block-Struktur, β hat fixe Magnitude mit random signs
+#'
+#' @export
+scenario_s16_decoupled_block <- function(n = 100, p_max = 10, p_true = 5,
+                                         sigma_eps = 0.2, rho = 0.6,
+                                         block_size = 3, beta_magnitude = 1.0,
+                                         seed = NULL) {
+  list(
+    scenario_name = sprintf("S16_decoupled_block_rho%.2f", rho),
+    scenario_description = sprintf("Decoupled: Block structure (rho=%.2f) + fixed magnitude", rho),
+    n = n,
+    p_max = p_max,
+    p_true = p_true,
+    beta_spec = "decoupled_random",
+    beta_magnitude = beta_magnitude,  # ← β = ±magnitude
+    sigma_eps = sigma_eps,
+    X_dist = "normal",
+    correlation_structure = "block",
+    rho = rho,
+    block_size = block_size,
+    seed = seed,
+    expected_behavior = "Block correlations don't bias toward specific indices",
+    notes = "All effects ±1.0, positions randomized"
+  )
+}
+
+
+#' S17: Decoupled Compound Symmetry with Controlled Effects
+#'
+#' ✅ ENTKOPPELT: X hat Compound-Struktur, β-Werte aus vorgegebener Liste
+#'
+#' @export
+scenario_s17_decoupled_compound <- function(n = 100, p_max = 10, p_true = 3,
+                                            sigma_eps = 0.2, rho = 0.5,
+                                            beta_values = c(1.0, 0.8, 0.5),
+                                            seed = NULL) {
+  list(
+    scenario_name = sprintf("S17_decoupled_compound_rho%.2f", rho),
+    scenario_description = sprintf("Decoupled: Compound symmetry (rho=%.2f) + controlled effects", rho),
+    n = n,
+    p_max = p_max,
+    p_true = p_true,
+    beta_spec = "decoupled_fixed",
+    beta_values = beta_values,        # ← Spezifische Werte, aber zufällige Positionen
+    sigma_eps = sigma_eps,
+    X_dist = "normal",
+    correlation_structure = "compound",
+    rho = rho,
+    seed = seed,
+    expected_behavior = "Compound correlation structure independent of effect positions",
+    notes = "Effects [1.0, 0.8, 0.5] assigned to random positions"
+  )
 }

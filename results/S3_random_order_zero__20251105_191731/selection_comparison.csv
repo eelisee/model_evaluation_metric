@@ -1,4 +1,4 @@
 "rule","p_star","is_degenerate"
 "mp",2,FALSE
-"AIC",3,FALSE
-"BIC",3,FALSE
+"AIC",4,FALSE
+"BIC",4,FALSE

@@ -20,7 +20,7 @@ RESULTS OVERVIEW
   Models evaluated: 1023
   R² range: [0.0005, 1.0000]
   M_p range: [0.0005, 0.4415]
-  Execution time: 1.37 seconds
+  Execution time: 1.64 seconds
 
 MODEL SELECTION RESULTS
 ---------------------------------------------------------------------- 

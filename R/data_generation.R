@@ -144,7 +144,12 @@ generate_data_advanced <- function(config) {
     add_interactions = FALSE,
     nonlinear_terms = FALSE,
     t_df = 3,
-    seed = NULL
+    seed = NULL,
+    # NEU: Parameter für entkoppelte β-Generierung
+    p_true = NULL,          # Anzahl aktiver Prädiktoren (für decoupled modes)
+    beta_sd = NULL,         # SD für N(0, sigma^2) Ziehung
+    beta_magnitude = NULL,  # Fixe Magnitude für ±magnitude
+    beta_values = NULL      # User-spezifizierte Werte (für decoupled_fixed)
   ), config)
   
   # Set seed if provided
@@ -160,30 +165,80 @@ generate_data_advanced <- function(config) {
   column_permutation <- NULL
   
   # Parse beta_spec
+  # ENTKOPPLUNG: β-Support und Größe werden UNABHÄNGIG von X-Struktur generiert
   if (is.character(config$beta_spec)) {
     if (config$beta_spec == "constant") {
       # Constant incremental variance (S1)
+      # DEGENERIERTER FALL: Alle Variablen gleich stark
       true_beta <- rep(0.1, p_max)
+      
     } else if (config$beta_spec == "descending") {
-      # Descending signal strength (S2)
+      # ALTE VERSION (deterministisch gekoppelt) - NUR für Backwards-Kompatibilität
+      # TODO: Phase out in future versions
       p_true <- 3
       true_beta <- c(1.0, 0.8, 0.5, rep(0, p_max - p_true))
+      
     } else if (config$beta_spec == "random") {
-      # Random permutation: Generate X first, then permute columns
-      # This ensures S2 and S3 use the same X matrix (just relabeled)
+      # Order invariance test: Permute columns to test algorithm
+      # Set a flag and defer the permutation to ensure same X matrix
       p_true <- 3
       beta_vals <- c(1.0, 0.8, 0.5, rep(0, p_max - p_true))
-      
-      # Store the permutation to apply to X columns later
       permute_X_columns <- TRUE
-      column_permutation <- sample(1:p_max)
-      
-      # Beta stays in standard order for now
       true_beta <- beta_vals
+      
+    } else if (config$beta_spec == "decoupled_random") {
+      # ✅ NEUE EMPFOHLENE VERSION: β ENTKOPPELT von X-Struktur
+      # 
+      # Schritt 1: Support von β zufällig, aber Größe fix
+      p_true <- config$p_true  # Supportgröße muss in config angegeben werden
+      if (is.null(p_true)) p_true <- 3  # Default
+      
+      # Support-Positionen zufällig wählen (UNABHÄNGIG von Σ-Struktur)
+      beta_support <- sample(1:p_max, p_true, replace = FALSE)
+      
+      # Schritt 2: Effektstärken generieren (NICHT deterministisch)
+      if (!is.null(config$beta_sd)) {
+        # Aus Normalverteilung ziehen
+        beta_values <- rnorm(p_true, mean = 0, sd = config$beta_sd)
+      } else if (!is.null(config$beta_magnitude)) {
+        # Fixierte Magnitude, randomisiertes Vorzeichen
+        beta_values <- config$beta_magnitude * sample(c(-1, 1), p_true, replace = TRUE)
+      } else {
+        # Default: moderate Effekte mit zufälligen Vorzeichen
+        beta_magnitudes <- runif(p_true, min = 0.5, max = 1.5)
+        beta_values <- beta_magnitudes * sample(c(-1, 1), p_true, replace = TRUE)
+      }
+      
+      # Schritt 3: β-Vektor konstruieren
+      true_beta <- rep(0, p_max)
+      true_beta[beta_support] <- beta_values
+      
+    } else if (config$beta_spec == "decoupled_fixed") {
+      # ✅ ENTKOPPELTE VERSION mit fixer Supportgröße und kontrollierten Effekten
+      # Für reproduzierbare Vergleiche mit fixer Signalstärke
+      p_true <- config$p_true
+      if (is.null(p_true)) p_true <- 3
+      
+      # Support zufällig
+      beta_support <- sample(1:p_max, p_true, replace = FALSE)
+      
+      # Fixe Effekte (aber positions-unabhängig)
+      if (!is.null(config$beta_values)) {
+        beta_values <- config$beta_values  # User-spezifiziert
+      } else {
+        # Default: Absteigende Stärken, aber randomisierte Vorzeichen
+        beta_values <- c(1.0, 0.8, 0.5, rep(0.3, p_true - 3))[1:p_true]
+        beta_values <- beta_values * sample(c(-1, 1), p_true, replace = TRUE)
+      }
+      
+      true_beta <- rep(0, p_max)
+      true_beta[beta_support] <- beta_values
+      
     } else {
-      stop("Unknown beta_spec string")
+      stop("Unknown beta_spec string. Use 'decoupled_random' or 'decoupled_fixed'")
     }
   } else {
+    # Numeric beta_spec provided directly
     true_beta <- config$beta_spec
     if (length(true_beta) != p_max) {
       stop("beta_spec length must equal p_max")
@@ -247,16 +302,41 @@ generate_data_advanced <- function(config) {
   }
   
   # Apply column permutation if needed (for "random" beta_spec)
-  # This ensures S2 and S3 use the same underlying X, just with relabeled columns
-  if (permute_X_columns && !is.null(column_permutation)) {
+  # Goal: S2 and S3 should have SAME y vector (same data, just relabeled columns)
+  if (permute_X_columns) {
+    # Generate permutation using a completely independent seed
+    set.seed(config$seed + 999999)
+    column_permutation <- sample(1:p_max)
+    
+    # ORDER INVARIANCE TEST LOGIC:
+    # We want S2 and S3 to represent the SAME data, just with different column labels.
+    # 
+    # S2: Columns [1,2,3] have signals [1.0, 0.8, 0.5]
+    #     y = X[,1]*1.0 + X[,2]*0.8 + X[,3]*0.5 + noise
+    #
+    # S3: Columns [j1,j2,j3] should have the SAME PHYSICAL columns as S2's [1,2,3]
+    #     y = X_s3[,j1]*1.0 + X_s3[,j2]*0.8 + X_s3[,j3]*0.5 + noise
+    #     where X_s3[,j1] = X_s2[,1], X_s3[,j2] = X_s2[,2], X_s3[,j3] = X_s2[,3]
+    #
+    # To achieve this:
+    # 1. Permute X columns: X_obs[, column_permutation]
+    # 2. Permute beta IN THE OPPOSITE DIRECTION: If X column i goes to position j,
+    #    then beta coefficient at position i should also go to position j
+    #
+    # If column_permutation = [7, 3, 1, 4, 5, 6, 2, 8, 9, 10], this means:
+    #   - X_obs[,1] goes to position 7  =>  beta[1]=1.0 goes to beta_new[7]
+    #   - X_obs[,2] goes to position 3  =>  beta[2]=0.8 goes to beta_new[3]  
+    #   - X_obs[,3] goes to position 1  =>  beta[3]=0.5 goes to beta_new[1]
+    #
+    # This way: y = X_permuted %*% beta_permuted 
+    #            = X_orig[column_perm] %*% beta[column_perm]
+    #            = same as before!
+    
+    # Permute X columns
     X_obs <- X_obs[, column_permutation, drop = FALSE]
     
-    # Update true_beta to reflect the permutation
-    # The coefficient that was at position i is now at position column_permutation[i]
-    # We need to create a new beta vector where beta[column_permutation[i]] = old_beta[i]
-    true_beta_permuted <- numeric(p_max)
-    true_beta_permuted[column_permutation] <- true_beta
-    true_beta <- true_beta_permuted
+    # Permute beta to match
+    true_beta <- true_beta[column_permutation]
   }
   
   # Generate base linear predictor
