@@ -125,7 +125,7 @@ metric_mp <- function(r2_curve) {
   
   # Find maximum |Δ₂| (inflection point / elbow)
   # This is where marginal gains change most dramatically
-  max_idx <- which.max(abs(delta2))
+  max_idx <- which.min(delta2)
   
   # The inflection point corresponds to p at position max_idx + 1
   # (since delta2 is doubly differenced)
