@@ -2,10 +2,24 @@
 # ==============================
 # Implements the M_p selection rule for optimal model complexity
 
-#' Selection Rule: M_p
+#' Selection Rule: M_p (Curvature Method)
 #'
-#' Identifies the p where M_p drops most sharply to next p,
-#' then chooses p just before that largest drop.
+#' Identifies the optimal p where the M_p curve shows maximum curvature change.
+#' This represents the bias-variance tradeoff: where marginal gains flatten out.
+#'
+#' Strategy:
+#' 1. M_p = R²/p typically decreases but at different rates
+#' 2. Compute second differences (discrete d²M_p/dp²)
+#' 3. Find where |d²M_p| is LARGEST (maximum curvature)
+#' 4. This is where the "elbow" occurs in the curve
+#'
+#' Interpretation:
+#' - Before elbow: R² increases rapidly (low cost per dimension)
+#' - At elbow: Steepest change in rate (optimal tradeoff)
+#' - After elbow: R² plateaus (diminishing returns)
+#'
+#' The maximum |d²M_p| identifies where the curve bends most sharply,
+#' corresponding to the classic "elbow method" used in k-means, scree plots, etc.
 #'
 #' @param best_models Data frame. Best models by cardinality
 #' @return List with p_star, selected_model, and diagnostics
@@ -15,36 +29,39 @@ selection_rule_mp <- function(best_models) {
   # Order by p
   best_models <- best_models[order(best_models$p), ]
   
-  if (nrow(best_models) < 2) {
-    # Only one cardinality available
+  if (nrow(best_models) < 3) {
+    # Need at least 3 points for second derivative
+    # Default to smallest p
     return(list(
-      rule = "mp",
+      rule = "mp_curvature",
       p_star = best_models$p[1],
       selected_model = best_models[1, ],
       is_degenerate = TRUE,
-      largest_drop = NA,
-      drop_location = NA
+      elbow_index = NA,
+      max_curvature = NA,
+      method = "insufficient_points"
     ))
   }
   
-  # Calculate first differences (rate of change in Mp)
+  # Extract values
   p_vals <- best_models$p
   Mp_vals <- best_models$Mp
+  
+  # First differences (discrete derivative dM_p/dp)
   dMp <- diff(Mp_vals)
   
-  # Find largest negative drop
-  largest_drop_idx <- which.min(dMp)
-  largest_drop_value <- dMp[largest_drop_idx]
+  # Second differences (discrete second derivative d²M_p/dp²)
+  d2Mp <- diff(dMp)
   
-  # p* is the p just before the largest drop
-  # i.e., at position largest_drop_idx (before transition to largest_drop_idx + 1)
-  p_star <- p_vals[largest_drop_idx]
+  # Find maximum absolute curvature (elbow point)
+  # This is where the curve bends most sharply
+  max_curvature_idx <- which.max(abs(d2Mp))
+  max_curvature_value <- d2Mp[max_curvature_idx]
   
-  # Special case: if all drops are positive or zero (Mp increasing),
-  # choose the last p (maximum p)
-  if (largest_drop_value >= 0) {
-    p_star <- max(p_vals)
-  }
+  # The elbow is at position max_curvature_idx + 1 in p_vals
+  # (since d2Mp is doubly differenced, starting from index 3)
+  elbow_idx <- max_curvature_idx + 1
+  p_star <- p_vals[elbow_idx]
   
   selected_model <- best_models[best_models$p == p_star, ][1, ]
   
@@ -53,13 +70,14 @@ selection_rule_mp <- function(best_models) {
   is_degenerate <- mp_range < 1e-6
   
   return(list(
-    rule = "mp",
+    rule = "mp_curvature",
     p_star = p_star,
     selected_model = selected_model,
     is_degenerate = is_degenerate,
-    largest_drop = largest_drop_value,
-    drop_location = p_vals[largest_drop_idx],
-    all_drops = dMp
+    elbow_index = elbow_idx,
+    max_curvature = max_curvature_value,
+    second_derivatives = d2Mp,
+    method = "maximum_curvature"
   ))
 }
 

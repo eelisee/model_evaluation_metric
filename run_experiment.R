@@ -1,0 +1,365 @@
+# Main Experiment Runner
+# =======================
+# Executes the full experiment loop as specified
+
+# Load modules
+source("R/01_data_generation.R")
+source("R/02_metrics.R")
+source("R/03_evaluation.R")
+source("R/04_visualization.R")
+
+#' Define All Scenarios
+#'
+#' @return List of scenario configurations
+#' @export
+define_scenarios <- function() {
+  
+  list(
+    
+    # === A) Baseline Scenarios ===
+    
+    A1 = list(
+      name = "A1_Baseline_Uncorrelated",
+      description = "Uncorrelated predictors, sparse β, Gaussian noise",
+      n = 500,
+      p = 20,
+      sigma_structure = "identity",
+      rho = 0,
+      support_spec = 3,
+      signal_strength = "strong",
+      sigma_eps = 0.2
+    ),
+    
+    A2 = list(
+      name = "A2_Single_Predictor",
+      description = "Only one relevant variable",
+      n = 500,
+      p = 20,
+      sigma_structure = "identity",
+      rho = 0,
+      support_spec = "single",
+      signal_strength = "strong",
+      sigma_eps = 0.2
+    ),
+    
+    A3 = list(
+      name = "A3_Full_Support",
+      description = "All variables relevant",
+      n = 500,
+      p = 20,
+      sigma_structure = "identity",
+      rho = 0,
+      support_spec = "full",
+      signal_strength = "strong",
+      sigma_eps = 0.2
+    ),
+    
+    # === B) Structural Scenarios ===
+    
+    B1_weak = list(
+      name = "B1_AR1_Weak",
+      description = "AR(1) correlation, ρ = 0.5",
+      n = 500,
+      p = 20,
+      sigma_structure = "ar1",
+      rho = 0.5,
+      support_spec = 3,
+      signal_strength = "strong",
+      sigma_eps = 0.2
+    ),
+    
+    B1_strong = list(
+      name = "B1_AR1_Strong",
+      description = "AR(1) correlation, ρ = 0.8",
+      n = 500,
+      p = 20,
+      sigma_structure = "ar1",
+      rho = 0.8,
+      support_spec = 3,
+      signal_strength = "strong",
+      sigma_eps = 0.2
+    ),
+    
+    B2 = list(
+      name = "B2_Compound_Symmetry",
+      description = "Exchangeable correlation",
+      n = 500,
+      p = 20,
+      sigma_structure = "compound",
+      rho = 0.5,
+      support_spec = 3,
+      signal_strength = "strong",
+      sigma_eps = 0.2
+    ),
+    
+    B3 = list(
+      name = "B3_Block_Structure",
+      description = "Block correlation (groups of 5)",
+      n = 500,
+      p = 20,
+      sigma_structure = "block",
+      rho = 0.7,
+      block_size = 5,
+      support_spec = 3,
+      signal_strength = "strong",
+      sigma_eps = 0.2
+    ),
+    
+    # === C) Support Scenarios ===
+    
+    C1 = list(
+      name = "C1_Weak_Signals",
+      description = "All signals weak",
+      n = 500,
+      p = 20,
+      sigma_structure = "identity",
+      rho = 0,
+      support_spec = 5,
+      signal_strength = "weak",
+      sigma_eps = 0.2
+    ),
+    
+    C2 = list(
+      name = "C2_Many_Weak_Signals",
+      description = "Many weak signals",
+      n = 500,
+      p = 20,
+      sigma_structure = "identity",
+      rho = 0,
+      support_spec = 10,
+      signal_strength = "weak",
+      sigma_eps = 0.2
+    ),
+    
+    C3 = list(
+      name = "C3_Mixed_Signals",
+      description = "Mixed strong and weak signals",
+      n = 500,
+      p = 20,
+      sigma_structure = "identity",
+      rho = 0,
+      support_spec = 8,
+      signal_strength = "mixed",
+      sigma_eps = 0.2
+    )
+  )
+}
+
+
+#' Run Single Scenario
+#'
+#' @param scenario List. Scenario configuration
+#' @param N_iterations Integer. Number of Monte Carlo iterations
+#' @param output_dir String. Output directory
+#' @export
+run_scenario <- function(scenario, N_iterations = 5, output_dir = "results") {
+  
+  cat("\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n")
+  cat("SCENARIO:", scenario$name, "\n")
+  cat(scenario$description, "\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n\n")
+  
+  # Create output directory
+  scenario_dir <- file.path(output_dir, scenario$name)
+  dir.create(scenario_dir, showWarnings = FALSE, recursive = TRUE)
+  
+  # Storage for all iterations
+  all_iterations <- list()
+  all_r2_curves <- list()
+  
+  # Monte Carlo loop
+  for (iter in 1:N_iterations) {
+    
+    cat(sprintf("  [%d/%d] Iteration %d...\n", iter, N_iterations, iter))
+    
+    # Set seed for reproducibility
+    scenario$seed <- 1000 + iter
+    
+    # Generate data
+    cat("    → Generating data...\n")
+    data <- generate_data(scenario)
+    cat(sprintf("      X: %d x %d, y: %d, true p: %d\n", 
+                nrow(data$X), ncol(data$X), length(data$y), data$p_true))
+    
+    # Compute R² curve (exhaustive search over all subsets)
+    cat("    → Computing R² curve...\n")
+    r2_curve <- compute_r2_curve(data$X, data$y)
+    
+    # Apply all metrics
+    cat("    → Applying metrics...\n")
+    metric_results <- apply_all_metrics(r2_curve)
+    
+    cat("      M_p:      p* = ", metric_results$M_p$p_star, "\n")
+    cat("      M_p_sqrt: p* = ", metric_results$M_p_sqrt$p_star, "\n")
+    cat("      AIC:      p* = ", metric_results$AIC$p_star, "\n")
+    cat("      BIC:      p* = ", metric_results$BIC$p_star, "\n")
+    
+    # Evaluate
+    eval <- evaluate_iteration(metric_results, data$p_true)
+    eval$iteration <- iter
+    
+    # Store
+    all_iterations[[iter]] <- eval
+    all_r2_curves[[iter]] <- r2_curve
+    
+    cat("    ✓ Done\n\n")
+  }
+  
+  cat("\n  Computing summary statistics...\n")
+  
+  # Compute summary statistics
+  summary_stats <- compute_summary_statistics(all_iterations, all_r2_curves, data$p_true)
+  
+  # Use first iteration for representative plots
+  r2_curve_repr <- all_r2_curves[[1]]
+  data_repr <- generate_data(modifyList(scenario, list(seed = 1001)))
+  metric_results_repr <- apply_all_metrics(r2_curve_repr)
+  
+  # Create plots
+  cat("  Creating plots...\n")
+  create_all_plots(
+    r2_curve = r2_curve_repr,
+    metric_results = metric_results_repr,
+    all_iterations = all_iterations,
+    all_r2_curves = all_r2_curves,
+    summary_stats = summary_stats,
+    p_true = data_repr$p_true,
+    output_dir = file.path(scenario_dir, "plots")
+  )
+  
+  # Save summary
+  cat("  Saving summary...\n")
+  write_summary(scenario, summary_stats, all_iterations, 
+                file.path(scenario_dir, "summary.txt"))
+  
+  # Save CSV
+  write.csv(summary_stats, 
+            file.path(scenario_dir, "summary_stats.csv"),
+            row.names = FALSE)
+  
+  cat("\n✓ Scenario complete! Results saved to:", scenario_dir, "\n")
+  
+  return(list(
+    scenario = scenario,
+    summary_stats = summary_stats,
+    all_iterations = all_iterations
+  ))
+}
+
+
+#' Write Summary Report
+#'
+#' @param scenario List
+#' @param summary_stats Data frame
+#' @param all_iterations List
+#' @param filename String
+write_summary <- function(scenario, summary_stats, all_iterations, filename) {
+  
+  sink(filename)
+  
+  cat(paste(rep("=", 70), collapse = ""), "\n")
+  cat("SCENARIO:", scenario$name, "\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n\n")
+  
+  cat("Description:\n")
+  cat("  ", scenario$description, "\n\n")
+  
+  cat("Configuration:\n")
+  cat(sprintf("  Sample size (n):           %d\n", scenario$n))
+  cat(sprintf("  Predictors (p):            %d\n", scenario$p))
+  cat(sprintf("  Correlation structure:     %s\n", scenario$sigma_structure))
+  cat(sprintf("  Correlation parameter:     %.2f\n", scenario$rho))
+  cat(sprintf("  Support specification:     %s\n", as.character(scenario$support_spec)))
+  cat(sprintf("  Signal strength:           %s\n", scenario$signal_strength))
+  cat(sprintf("  Noise std dev (σ_eps):     %.2f\n", scenario$sigma_eps))
+  cat("\n")
+  
+  cat("Summary Statistics:\n")
+  cat(paste(rep("-", 70), collapse = ""), "\n")
+  print(summary_stats)
+  cat("\n")
+  
+  cat("Interpretation:\n")
+  for (i in 1:nrow(summary_stats)) {
+    m <- summary_stats$metric[i]
+    cat(sprintf("\n%s:\n", m))
+    cat(sprintf("  MAE:         %.3f\n", summary_stats$MAE[i]))
+    cat(sprintf("  Bias:        %.3f\n", summary_stats$Bias[i]))
+    cat(sprintf("  Variance:    %.3f\n", summary_stats$Variance[i]))
+    cat(sprintf("  Hit Rate:    %.1f%%\n", summary_stats$HitRate[i] * 100))
+    cat(sprintf("  Correct:     %d\n", summary_stats$n_correct[i]))
+    cat(sprintf("  Underfit:    %d\n", summary_stats$n_underfit[i]))
+    cat(sprintf("  Overfit:     %d\n", summary_stats$n_overfit[i]))
+  }
+  
+  cat("\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n")
+  cat("Timestamp:", format(Sys.time()), "\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n")
+  
+  sink()
+}
+
+
+#' Run All Scenarios
+#'
+#' @param N_iterations Integer
+#' @param output_dir String
+#' @export
+run_all_scenarios <- function(N_iterations = 100, output_dir = "results") {
+  
+  scenarios <- define_scenarios()
+  
+  cat("\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n")
+  cat("RUNNING ALL SCENARIOS\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n")
+  cat(sprintf("Total scenarios: %d\n", length(scenarios)))
+  cat(sprintf("Iterations per scenario: %d\n", N_iterations))
+  cat(sprintf("Output directory: %s\n", output_dir))
+  cat("\n")
+  
+  results <- list()
+  
+  for (i in seq_along(scenarios)) {
+    cat(sprintf("\n▶ Starting scenario %d/%d with N=%d iterations\n", 
+                i, length(scenarios), N_iterations))
+    results[[i]] <- run_scenario(
+      scenario = scenarios[[i]], 
+      N_iterations = N_iterations,  # EXPLICITLY NAMED
+      output_dir = output_dir
+    )
+  }
+  
+  cat("\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n")
+  cat("ALL SCENARIOS COMPLETE!\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n\n")
+  
+  return(results)
+}
+
+
+# ============================================================================
+# MAIN EXECUTION
+# ============================================================================
+
+if (interactive()) {
+  cat("\nInteractive mode. To run experiments:\n\n")
+  cat("  # Run single scenario\n")
+  cat("  result <- run_scenario(define_scenarios()$A1, N_iterations = 10)\n\n")
+  cat("  # Run all scenarios\n")
+  cat("  results <- run_all_scenarios(N_iterations = 100)\n\n")
+} else {
+  # Command-line execution
+  args <- commandArgs(trailingOnly = TRUE)
+  
+  if (length(args) == 0) {
+    # Default: run all with 100 iterations
+    run_all_scenarios(N_iterations = 100)
+  } else {
+    N <- as.integer(args[1])
+    run_all_scenarios(N_iterations = N)
+  }
+}

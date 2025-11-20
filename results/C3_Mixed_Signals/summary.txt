@@ -1,0 +1,65 @@
+====================================================================== 
+SCENARIO: C3_Mixed_Signals 
+====================================================================== 
+
+Description:
+   Mixed strong and weak signals 
+
+Configuration:
+  Sample size (n):           500
+  Predictors (p):            20
+  Correlation structure:     identity
+  Correlation parameter:     0.00
+  Support specification:     8
+  Signal strength:           mixed
+  Noise std dev (σ_eps):     0.20
+
+Summary Statistics:
+---------------------------------------------------------------------- 
+    metric MAE Bias Variance HitRate n_correct n_underfit n_overfit
+1      M_p 5.8 -5.8      0.2     0.0         0          5         0
+2 M_p_sqrt 5.8 -5.8      0.2     0.0         0          5         0
+3      AIC 2.2  2.2      1.2     0.0         0          0         5
+4      BIC 0.8 -0.8      0.2     0.2         1          4         0
+
+Interpretation:
+
+M_p:
+  MAE:         5.800
+  Bias:        -5.800
+  Variance:    0.200
+  Hit Rate:    0.0%
+  Correct:     0
+  Underfit:    5
+  Overfit:     0
+
+M_p_sqrt:
+  MAE:         5.800
+  Bias:        -5.800
+  Variance:    0.200
+  Hit Rate:    0.0%
+  Correct:     0
+  Underfit:    5
+  Overfit:     0
+
+AIC:
+  MAE:         2.200
+  Bias:        2.200
+  Variance:    1.200
+  Hit Rate:    0.0%
+  Correct:     0
+  Underfit:    0
+  Overfit:     5
+
+BIC:
+  MAE:         0.800
+  Bias:        -0.800
+  Variance:    0.200
+  Hit Rate:    20.0%
+  Correct:     1
+  Underfit:    4
+  Overfit:     0
+
+====================================================================== 
+Timestamp: 2025-11-20 21:42:33 
+====================================================================== 

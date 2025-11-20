@@ -1,0 +1,5 @@
+"metric","MAE","Bias","Variance","HitRate","n_correct","n_underfit","n_overfit"
+"M_p",0.8,-0.8,0.2,0.2,1,4,0
+"M_p_sqrt",1,-1,0.5,0.2,1,4,0
+"AIC",3,3,2.5,0,0,0,5
+"BIC",0.2,0.2,0.2,0.8,4,0,1

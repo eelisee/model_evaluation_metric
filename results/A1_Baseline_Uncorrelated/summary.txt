@@ -1,0 +1,65 @@
+====================================================================== 
+SCENARIO: A1_Baseline_Uncorrelated 
+====================================================================== 
+
+Description:
+   Uncorrelated predictors, sparse β, Gaussian noise 
+
+Configuration:
+  Sample size (n):           500
+  Predictors (p):            20
+  Correlation structure:     identity
+  Correlation parameter:     0.00
+  Support specification:     3
+  Signal strength:           strong
+  Noise std dev (σ_eps):     0.20
+
+Summary Statistics:
+---------------------------------------------------------------------- 
+    metric MAE Bias Variance HitRate n_correct n_underfit n_overfit
+1      M_p 0.8 -0.8      0.2     0.2         1          4         0
+2 M_p_sqrt 0.8 -0.8      0.2     0.2         1          4         0
+3      AIC 1.6  1.6      2.3     0.2         1          0         4
+4      BIC 0.4  0.4      0.3     0.6         3          0         2
+
+Interpretation:
+
+M_p:
+  MAE:         0.800
+  Bias:        -0.800
+  Variance:    0.200
+  Hit Rate:    20.0%
+  Correct:     1
+  Underfit:    4
+  Overfit:     0
+
+M_p_sqrt:
+  MAE:         0.800
+  Bias:        -0.800
+  Variance:    0.200
+  Hit Rate:    20.0%
+  Correct:     1
+  Underfit:    4
+  Overfit:     0
+
+AIC:
+  MAE:         1.600
+  Bias:        1.600
+  Variance:    2.300
+  Hit Rate:    20.0%
+  Correct:     1
+  Underfit:    0
+  Overfit:     4
+
+BIC:
+  MAE:         0.400
+  Bias:        0.400
+  Variance:    0.300
+  Hit Rate:    60.0%
+  Correct:     3
+  Underfit:    0
+  Overfit:     2
+
+====================================================================== 
+Timestamp: 2025-11-20 21:30:11 
+====================================================================== 

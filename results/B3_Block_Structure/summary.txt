@@ -1,0 +1,65 @@
+====================================================================== 
+SCENARIO: B3_Block_Structure 
+====================================================================== 
+
+Description:
+   Block correlation (groups of 5) 
+
+Configuration:
+  Sample size (n):           500
+  Predictors (p):            20
+  Correlation structure:     block
+  Correlation parameter:     0.70
+  Support specification:     3
+  Signal strength:           strong
+  Noise std dev (σ_eps):     0.20
+
+Summary Statistics:
+---------------------------------------------------------------------- 
+    metric MAE Bias Variance HitRate n_correct n_underfit n_overfit
+1      M_p 0.6 -0.6      0.3     0.4         2          3         0
+2 M_p_sqrt 0.6 -0.6      0.3     0.4         2          3         0
+3      AIC 2.0  2.0      2.5     0.2         1          0         4
+4      BIC 0.2  0.2      0.2     0.8         4          0         1
+
+Interpretation:
+
+M_p:
+  MAE:         0.600
+  Bias:        -0.600
+  Variance:    0.300
+  Hit Rate:    40.0%
+  Correct:     2
+  Underfit:    3
+  Overfit:     0
+
+M_p_sqrt:
+  MAE:         0.600
+  Bias:        -0.600
+  Variance:    0.300
+  Hit Rate:    40.0%
+  Correct:     2
+  Underfit:    3
+  Overfit:     0
+
+AIC:
+  MAE:         2.000
+  Bias:        2.000
+  Variance:    2.500
+  Hit Rate:    20.0%
+  Correct:     1
+  Underfit:    0
+  Overfit:     4
+
+BIC:
+  MAE:         0.200
+  Bias:        0.200
+  Variance:    0.200
+  Hit Rate:    80.0%
+  Correct:     4
+  Underfit:    0
+  Overfit:     1
+
+====================================================================== 
+Timestamp: 2025-11-20 21:38:25 
+====================================================================== 

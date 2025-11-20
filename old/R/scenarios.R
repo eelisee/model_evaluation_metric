@@ -511,6 +511,49 @@ get_scenario_description <- function(scenario_name) {
 # ============================================================================
 # Diese Szenarien implementieren die Entkopplung zwischen X-Struktur und β
 
+#' A1: Baseline - Uncorrelated Predictors (Minimal Test Case)
+#'
+#' ✅ IDEAL CASE - Absolute Minimum Requirement
+#'
+#' Setup:
+#'   - X ~ N(0, I)           → Unkorrelierte Prädiktoren
+#'   - β sparse, random support → Entkoppelt
+#'   - ε ~ N(0, σ²)          → Gaussian Noise, homoskedastisch
+#'
+#' Expected Behavior:
+#'   - M_p should find the true support
+#'   - If this fails, everything else is irrelevant
+#'
+#' @param n Sample size (default 100)
+#' @param p_max Number of predictors (default 10)
+#' @param p_true Number of active predictors (default 3)
+#' @param sigma_eps Noise level (default 0.2)
+#' @param beta_values Fixed beta values (default c(1.0, 0.8, 0.5))
+#' @param seed Random seed
+#' @export
+scenario_a1_baseline_uncorrelated <- function(n = 100, p_max = 10, p_true = 3,
+                                              sigma_eps = 0.2, 
+                                              beta_values = c(1.0, 0.8, 0.5),
+                                              seed = NULL) {
+  list(
+    scenario_name = sprintf("A1_baseline_uncorr_ptrue%d", p_true),
+    scenario_description = "Baseline: Uncorrelated X, sparse beta, Gaussian noise",
+    n = n,
+    p_max = p_max,
+    p_true = p_true,
+    beta_spec = "decoupled_fixed",      # ← Fixe Werte für Reproduzierbarkeit
+    beta_values = beta_values,          # ← Kontrollierte Effektstärken
+    sigma_eps = sigma_eps,
+    X_dist = "normal",
+    correlation_structure = "identity",  # ← Σ = I (unkorreliert)
+    rho = 0,
+    seed = seed,
+    expected_behavior = "M_p should find true support - MINIMUM REQUIREMENT",
+    notes = "Ideal case: no correlation, controlled effects [1.0, 0.8, 0.5] at random positions"
+  )
+}
+
+
 #' S15: Decoupled AR(1) Structure with Random Effects
 #'
 #' ✅ ENTKOPPELT: X hat AR(1)-Struktur, β-Support und Größe sind unabhängig

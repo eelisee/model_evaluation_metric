@@ -1,0 +1,65 @@
+====================================================================== 
+SCENARIO: B1_AR1_Weak 
+====================================================================== 
+
+Description:
+   AR(1) correlation, ρ = 0.5 
+
+Configuration:
+  Sample size (n):           500
+  Predictors (p):            20
+  Correlation structure:     ar1
+  Correlation parameter:     0.50
+  Support specification:     3
+  Signal strength:           strong
+  Noise std dev (σ_eps):     0.20
+
+Summary Statistics:
+---------------------------------------------------------------------- 
+    metric MAE Bias Variance HitRate n_correct n_underfit n_overfit
+1      M_p 1.0 -1.0      0.0     0.0         0          5         0
+2 M_p_sqrt 1.0 -1.0      0.0     0.0         0          5         0
+3      AIC 2.8  2.8      3.2     0.0         0          0         5
+4      BIC 0.4  0.4      0.3     0.6         3          0         2
+
+Interpretation:
+
+M_p:
+  MAE:         1.000
+  Bias:        -1.000
+  Variance:    0.000
+  Hit Rate:    0.0%
+  Correct:     0
+  Underfit:    5
+  Overfit:     0
+
+M_p_sqrt:
+  MAE:         1.000
+  Bias:        -1.000
+  Variance:    0.000
+  Hit Rate:    0.0%
+  Correct:     0
+  Underfit:    5
+  Overfit:     0
+
+AIC:
+  MAE:         2.800
+  Bias:        2.800
+  Variance:    3.200
+  Hit Rate:    0.0%
+  Correct:     0
+  Underfit:    0
+  Overfit:     5
+
+BIC:
+  MAE:         0.400
+  Bias:        0.400
+  Variance:    0.300
+  Hit Rate:    60.0%
+  Correct:     3
+  Underfit:    0
+  Overfit:     2
+
+====================================================================== 
+Timestamp: 2025-11-20 21:34:18 
+====================================================================== 

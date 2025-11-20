@@ -1,0 +1,65 @@
+====================================================================== 
+SCENARIO: C2_Many_Weak_Signals 
+====================================================================== 
+
+Description:
+   Many weak signals 
+
+Configuration:
+  Sample size (n):           500
+  Predictors (p):            20
+  Correlation structure:     identity
+  Correlation parameter:     0.00
+  Support specification:     10
+  Signal strength:           weak
+  Noise std dev (σ_eps):     0.20
+
+Summary Statistics:
+---------------------------------------------------------------------- 
+    metric MAE Bias Variance HitRate n_correct n_underfit n_overfit
+1      M_p 7.4 -7.4      0.3     0.0         0          5         0
+2 M_p_sqrt 7.0 -7.0      0.5     0.0         0          5         0
+3      AIC 1.6  0.4      3.8     0.0         0          2         3
+4      BIC 1.2 -1.2      1.2     0.4         2          3         0
+
+Interpretation:
+
+M_p:
+  MAE:         7.400
+  Bias:        -7.400
+  Variance:    0.300
+  Hit Rate:    0.0%
+  Correct:     0
+  Underfit:    5
+  Overfit:     0
+
+M_p_sqrt:
+  MAE:         7.000
+  Bias:        -7.000
+  Variance:    0.500
+  Hit Rate:    0.0%
+  Correct:     0
+  Underfit:    5
+  Overfit:     0
+
+AIC:
+  MAE:         1.600
+  Bias:        0.400
+  Variance:    3.800
+  Hit Rate:    0.0%
+  Correct:     0
+  Underfit:    2
+  Overfit:     3
+
+BIC:
+  MAE:         1.200
+  Bias:        -1.200
+  Variance:    1.200
+  Hit Rate:    40.0%
+  Correct:     2
+  Underfit:    3
+  Overfit:     0
+
+====================================================================== 
+Timestamp: 2025-11-20 21:41:12 
+====================================================================== 
