@@ -240,28 +240,22 @@ run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", pa
     
     for (iter in 1:N_iterations) {
       
-      cat(sprintf("  [%d/%d] Iteration %d...\n", iter, N_iterations, iter))
+      # Only print every 10th iteration or first/last
+      if (iter == 1 || iter == N_iterations || iter %% 10 == 0) {
+        cat(sprintf("  [%d/%d]\n", iter, N_iterations))
+      }
       
       # Set seed for reproducibility
       scenario$seed <- 1000 + iter
       
       # Generate data
-      cat("    → Generating data...\n")
       data <- generate_data(scenario)
-      cat(sprintf("      X: %d x %d, y: %d, true p: %d\n", 
-                  nrow(data$X), ncol(data$X), length(data$y), data$p_true))
       
       # Compute R² curve (exhaustive search over all subsets)
-      cat("    → Computing R² curve...\n")
       r2_curve <- compute_r2_curve(data$X, data$y, n_cores = n_cores)
       
       # Apply all metrics
-      cat("    → Applying metrics...\n")
       metric_results <- apply_all_metrics(r2_curve)
-      
-      cat("      M_p:      p* = ", metric_results$M_p$p_star, "\n")
-      cat("      AIC:      p* = ", metric_results$AIC$p_star, "\n")
-      cat("      BIC:      p* = ", metric_results$BIC$p_star, "\n")
       
       # Evaluate (with support_true for subset evaluation)
       eval <- evaluate_iteration(metric_results, data$p_true, data$support_true)
@@ -276,8 +270,6 @@ run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", pa
       
       # Force garbage collection to free memory
       if (iter %% 10 == 0) gc()
-      
-      cat("    ✓ Done\n\n")
     }
   }
   

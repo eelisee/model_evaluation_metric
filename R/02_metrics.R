@@ -40,7 +40,10 @@ compute_r2_curve <- function(X, y, n_cores = NULL) {
     # Enumerate all subsets of size p
     subsets <- combn(1:p_max, p, simplify = FALSE)
     n_subsets <- length(subsets)
-    cat(sprintf("      p=%d: evaluating %d subsets", p, n_subsets))
+    # Reduced output: only show every 5th p
+    if (p %% 5 == 1 || p == p_max) {
+      cat(sprintf("      p=%d: %d subsets", p, n_subsets))
+    }
     
     # Parallel evaluation of all subsets
     subset_results <- mclapply(subsets, function(S) {
@@ -84,18 +87,22 @@ compute_r2_curve <- function(X, y, n_cores = NULL) {
       p = p,
       R2 = best_R2$R2,
       RSS = best_R2$RSS,
-      AIC = best_R2$AIC,
-      BIC = best_R2$BIC,
+      AIC = best_AIC$AIC,        # Use AIC from best AIC model
+      BIC = best_BIC$BIC,        # Use BIC from best BIC model
       subset = I(list(best_R2$subset)),
       subset_AIC = I(list(best_AIC$subset)),
       subset_BIC = I(list(best_BIC$subset))
     )
     
-    cat(" ✓\n")
+    # Only print confirmation for every 5th p
+    if (p %% 5 == 1 || p == p_max) {
+      cat(" ✓\n")
+    }
   }
   
-  # Combine
+  # Combine and print summary
   df <- do.call(rbind, results)
+  cat(sprintf("    ✓ Completed R² curve computation for all p\n"))
   return(df)
 }
 
@@ -186,7 +193,7 @@ metric_aic <- function(r2_curve) {
   
   min_idx <- which.min(r2_curve$AIC)
   p_star <- r2_curve$p[min_idx]
-  subset <- r2_curve$subset[[min_idx]]
+  subset <- r2_curve$subset_AIC[[min_idx]]
   
   return(list(
     metric = "AIC",
@@ -208,7 +215,7 @@ metric_bic <- function(r2_curve) {
   
   min_idx <- which.min(r2_curve$BIC)
   p_star <- r2_curve$p[min_idx]
-  subset <- r2_curve$subset[[min_idx]]
+  subset <- r2_curve$subset_BIC[[min_idx]]
   
   return(list(
     metric = "BIC",

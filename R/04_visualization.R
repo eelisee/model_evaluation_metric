@@ -217,12 +217,20 @@ plot_p_star_scatter <- function(all_iterations, p_true, filename) {
   # Add true p line (vertical now)
   abline(v = p_true, col = "green3", lwd = 2.5, lty = 1)
   
-  # Plot points for each metric (axes swapped)
+  # Plot points for each metric (axes swapped) - smaller and semi-transparent
   for (i in seq_along(metrics)) {
     m <- metrics[i]
     subset <- df[df$metric == m, ]
+    # Extract RGB from hex colors and add transparency
+    if (i == 1) { # M_p: #A23B72
+      col_rgba <- rgb(162/255, 59/255, 114/255, alpha = 0.6)
+    } else if (i == 2) { # AIC: #2E86AB
+      col_rgba <- rgb(46/255, 134/255, 171/255, alpha = 0.6)
+    } else { # BIC: #F18F01
+      col_rgba <- rgb(241/255, 143/255, 1/255, alpha = 0.6)
+    }
     points(subset$p_star, subset$iteration,
-           col = colors[i], pch = pch_symbols[i], cex = 1.8, lwd = 2)
+           col = col_rgba, pch = pch_symbols[i], cex = 1.0, lwd = 1.5)
   }
   
   # Legend outside plot area
@@ -378,15 +386,11 @@ plot_second_derivative <- function(all_r2_curves, all_metric_results, filename) 
   
   abline(h = 0, col = "gray30", lty = 2, lwd = 1.5)
   
-  # Mark most frequent inflection point
+  # Mark most frequent inflection point with vertical line (like other plots)
   inflection_idx <- which(p_vals == p_star_mp)
   
   if (length(inflection_idx) > 0 && inflection_idx <= length(delta2_avg)) {
-    points(p_star_mp, delta2_avg[inflection_idx], 
-           col = "#E63946", pch = 8, cex = 2.5, lwd = 2)
-    text(p_star_mp, delta2_avg[inflection_idx], 
-         sprintf("p* = %d (mode)", p_star_mp),
-         col = "#E63946", font = 2, pos = 3, cex = 1.1)
+    abline(v = p_star_mp, lty = 2, col = "#E63946", lwd = 2)
   }
   
   dev.off()
