@@ -5,47 +5,60 @@
 #' Plot R² and M_p Curves
 #'
 #' Two-panel plot showing R² increase and M_p efficiency
+#' Uses averaged curves across all iterations for stability
 #'
-#' @param r2_curve Data frame with p, R2, AIC, BIC
-#' @param metric_results List from apply_all_metrics()
+#' @param all_r2_curves List of R² curves from all iterations
+#' @param all_metric_results List of metric results from all iterations
 #' @param p_true Integer. True model size
 #' @param filename String
 #' @export
-plot_r2_and_mp_curves <- function(r2_curve, metric_results, p_true, filename) {
+plot_r2_and_mp_curves <- function(all_r2_curves, all_metric_results, p_true, filename) {
   
-  # Compute M_p curve
-  M_p <- r2_curve$R2 / r2_curve$p
-  p_star_mp <- metric_results$M_p$p_star
+  # Average R² across all iterations
+  p_vals <- all_r2_curves[[1]]$p
+  R2_avg <- numeric(length(p_vals))
+  
+  for (i in seq_along(p_vals)) {
+    R2_values <- sapply(all_r2_curves, function(curve) curve$R2[i])
+    R2_avg[i] <- mean(R2_values)
+  }
+  
+  # Compute average M_p curve
+  M_p_avg <- R2_avg / p_vals
+  
+  # Get most frequent p* selection (mode)
+  p_star_selections <- sapply(all_metric_results, function(res) res$M_p$p_star)
+  p_star_mp <- as.numeric(names(sort(table(p_star_selections), decreasing = TRUE)[1]))
   
   png(filename, width = 10, height = 8, units = "in", res = 300)
   par(mfrow = c(2, 1), mar = c(4, 4.5, 3, 2))
   
-  # Panel 1: R² curve
-  plot(r2_curve$p, r2_curve$R2, type = "b", pch = 19, col = "#2E86AB",
+  # Panel 1: R² curve (averaged)
+  plot(p_vals, R2_avg, type = "b", pch = 19, col = "#2E86AB",
        xlab = "Number of Predictors (p)", ylab = expression(R^2),
-       main = "R² vs Model Complexity", cex = 1.2, lwd = 2,
+       main = "R² vs Model Complexity (Averaged Across Iterations)", cex = 1.2, lwd = 2,
        ylim = c(0, 1), xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
-  axis(1, at = r2_curve$p)
+  axis(1, at = p_vals)
   grid()
   abline(v = p_true, lty = 1, col = "green3", lwd = 2)
   abline(v = p_star_mp, lty = 2, col = "#E63946", lwd = 2)
   
-  # Panel 2: M_p curve
-  plot(r2_curve$p, M_p, type = "b", pch = 19, col = "#A23B72",
+  # Panel 2: M_p curve (averaged)
+  plot(p_vals, M_p_avg, type = "b", pch = 19, col = "#A23B72",
        xlab = "Number of Predictors (p)", ylab = expression(M[p]~"="~R^2/p),
-       main = "M_p Efficiency Curve", cex = 1.2, lwd = 2,
+       main = "M_p Efficiency Curve (Averaged Across Iterations)", cex = 1.2, lwd = 2,
        xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
-  axis(1, at = r2_curve$p)
+  axis(1, at = p_vals)
   grid()
   abline(v = p_true, lty = 1, col = "green3", lwd = 2)
   abline(v = p_star_mp, lty = 2, col = "#E63946", lwd = 2)
   
   # Highlight optimal point
-  optimal_mp <- M_p[r2_curve$p == p_star_mp]
+  optimal_mp <- M_p_avg[p_vals == p_star_mp]
   points(p_star_mp, optimal_mp, pch = 21, col = "#E63946", 
          bg = "#E63946", cex = 2.5, lwd = 2)
   
-  legend("topright", legend = c("True p", "Selected p*"),
+  legend("topright", legend = c("True p", "Most Frequent p*"),
          col = c("green3", "#E63946"), lty = c(1, 2), lwd = 2, cex = 1.1)
   
   dev.off()
@@ -55,43 +68,60 @@ plot_r2_and_mp_curves <- function(r2_curve, metric_results, p_true, filename) {
 #' Plot Criterion Comparison (M_p, AIC, BIC)
 #'
 #' Normalized comparison of all three selection criteria
+#' Uses averaged curves across all iterations for stability
 #'
-#' @param r2_curve Data frame
-#' @param metric_results List from apply_all_metrics()
+#' @param all_r2_curves List of R² curves from all iterations
+#' @param all_metric_results List of metric results from all iterations
 #' @param p_true Integer
 #' @param filename String
 #' @export
-plot_criterion_comparison <- function(r2_curve, metric_results, p_true, filename) {
+plot_criterion_comparison <- function(all_r2_curves, all_metric_results, p_true, filename) {
   
-  # Compute M_p
-  M_p <- r2_curve$R2 / r2_curve$p
+  # Average across all iterations
+  p_vals <- all_r2_curves[[1]]$p
+  R2_avg <- numeric(length(p_vals))
+  AIC_avg <- numeric(length(p_vals))
+  BIC_avg <- numeric(length(p_vals))
+  
+  for (i in seq_along(p_vals)) {
+    R2_values <- sapply(all_r2_curves, function(curve) curve$R2[i])
+    AIC_values <- sapply(all_r2_curves, function(curve) curve$AIC[i])
+    BIC_values <- sapply(all_r2_curves, function(curve) curve$BIC[i])
+    
+    R2_avg[i] <- mean(R2_values)
+    AIC_avg[i] <- mean(AIC_values)
+    BIC_avg[i] <- mean(BIC_values)
+  }
+  
+  # Compute average M_p
+  M_p_avg <- R2_avg / p_vals
   
   # Normalize for comparison (0-1 scale)
   normalize <- function(x) (x - min(x, na.rm = TRUE)) / (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))
   
   # For AIC/BIC, invert since lower is better
-  Mp_norm <- normalize(M_p)
-  AIC_norm <- 1 - normalize(r2_curve$AIC)
-  BIC_norm <- 1 - normalize(r2_curve$BIC)
+  Mp_norm <- normalize(M_p_avg)
+  AIC_norm <- 1 - normalize(AIC_avg)
+  BIC_norm <- 1 - normalize(BIC_avg)
   
-  # Extract optimal points
-  p_star_mp <- metric_results$M_p$p_star
-  p_star_aic <- metric_results$AIC$p_star
-  p_star_bic <- metric_results$BIC$p_star
+  # Get most frequent selections (mode)
+  p_star_mp <- as.numeric(names(sort(table(sapply(all_metric_results, function(res) res$M_p$p_star)), decreasing = TRUE)[1]))
+  p_star_aic <- as.numeric(names(sort(table(sapply(all_metric_results, function(res) res$AIC$p_star)), decreasing = TRUE)[1]))
+  p_star_bic <- as.numeric(names(sort(table(sapply(all_metric_results, function(res) res$BIC$p_star)), decreasing = TRUE)[1]))
   
   png(filename, width = 10, height = 6, units = "in", res = 300)
   par(mar = c(4, 4.5, 3, 2))
   
-  plot(r2_curve$p, Mp_norm, type = "b", pch = 19, col = "#A23B72",
+  plot(p_vals, Mp_norm, type = "b", pch = 19, col = "#A23B72",
        xlab = "Number of Predictors (p)", ylab = "Normalized Score (higher is better)",
-       main = "Model Selection Criteria Comparison", lwd = 2, cex = 1.2,
+       main = "Model Selection Criteria Comparison (Averaged)", lwd = 2, cex = 1.2,
        ylim = c(0, 1), xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
-  axis(1, at = r2_curve$p)
+  axis(1, at = p_vals)
   grid()
   
-  lines(r2_curve$p, AIC_norm, type = "b", pch = 17, 
+  lines(p_vals, AIC_norm, type = "b", pch = 17, 
         col = "#2E86AB", lty = 2, lwd = 2, cex = 1.2)
-  lines(r2_curve$p, BIC_norm, type = "b", pch = 15, 
+  lines(p_vals, BIC_norm, type = "b", pch = 15, 
         col = "#F18F01", lty = 3, lwd = 2, cex = 1.2)
   
   # Mark true p
@@ -310,39 +340,51 @@ plot_classification_breakdown <- function(summary_stats, filename) {
 #' Plot Second Derivative (Δ₂) for M_p
 #'
 #' Shows the second derivative of M_p curve to visualize inflection point detection
+#' Uses averaged curves across all iterations for stability
 #'
-#' @param r2_curve Data frame
-#' @param mp_result Result from metric_mp()
+#' @param all_r2_curves List of R² curves from all iterations
+#' @param all_metric_results List of metric results from all iterations
 #' @param filename String
 #' @export
-plot_second_derivative <- function(r2_curve, mp_result, filename) {
+plot_second_derivative <- function(all_r2_curves, all_metric_results, filename) {
   
-  delta2 <- mp_result$delta2
-  p_vals <- r2_curve$p[1:length(delta2)]
+  # Average delta2 across all iterations
+  first_delta2 <- all_metric_results[[1]]$M_p$delta2
+  delta2_avg <- numeric(length(first_delta2))
+  
+  for (i in seq_along(first_delta2)) {
+    delta2_values <- sapply(all_metric_results, function(res) res$M_p$delta2[i])
+    delta2_avg[i] <- mean(delta2_values)
+  }
+  
+  p_vals <- all_r2_curves[[1]]$p[1:length(delta2_avg)]
+  
+  # Get most frequent p* selection
+  p_star_selections <- sapply(all_metric_results, function(res) res$M_p$p_star)
+  p_star_mp <- as.numeric(names(sort(table(p_star_selections), decreasing = TRUE)[1]))
   
   png(filename, width = 10, height = 6, units = "in", res = 300)
   par(mar = c(4, 4.5, 3, 2))
   
-  plot(p_vals, delta2, 
+  plot(p_vals, delta2_avg, 
        type = "b", pch = 19, col = "#A23B72",
        xlab = "Model Size (p)", 
        ylab = expression(Delta[2]~"(Second Derivative of M"[p]*")"),
-       main = "Second Derivative of M_p Curve (Inflection Point Detection)",
+       main = "Second Derivative of M_p Curve (Averaged Across Iterations)",
        lwd = 2, cex = 1.2,
        cex.lab = 1.2, cex.main = 1.3)
   grid()
   
   abline(h = 0, col = "gray30", lty = 2, lwd = 1.5)
   
-  # Mark inflection point (minimum of delta2)
-  inflection_p <- mp_result$p_star
-  inflection_idx <- mp_result$inflection_index - 1
+  # Mark most frequent inflection point
+  inflection_idx <- which(p_vals == p_star_mp)
   
-  if (inflection_idx >= 1 && inflection_idx <= length(delta2)) {
-    points(inflection_p, delta2[inflection_idx], 
+  if (length(inflection_idx) > 0 && inflection_idx <= length(delta2_avg)) {
+    points(p_star_mp, delta2_avg[inflection_idx], 
            col = "#E63946", pch = 8, cex = 2.5, lwd = 2)
-    text(inflection_p, delta2[inflection_idx], 
-         sprintf("p* = %d (min)", inflection_p),
+    text(p_star_mp, delta2_avg[inflection_idx], 
+         sprintf("p* = %d (mode)", p_star_mp),
          col = "#E63946", font = 2, pos = 3, cex = 1.1)
   }
   
@@ -352,28 +394,27 @@ plot_second_derivative <- function(r2_curve, mp_result, filename) {
 
 #' Create All Plots
 #'
-#' @param r2_curve Data frame
-#' @param metric_results List
 #' @param all_iterations List
 #' @param all_r2_curves List of all R² curves
+#' @param all_metric_results List of all metric results
 #' @param summary_stats Data frame
 #' @param p_true Integer
 #' @param output_dir String
 #' @export
-create_all_plots <- function(r2_curve, metric_results, all_iterations, 
-                             all_r2_curves, summary_stats, p_true, output_dir) {
+create_all_plots <- function(all_iterations, all_r2_curves, all_metric_results,
+                             summary_stats, p_true, output_dir) {
   
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   
   cat("  Creating visualizations...\n")
   
   plot_r2_and_mp_curves(
-    r2_curve, metric_results, p_true,
+    all_r2_curves, all_metric_results, p_true,
     file.path(output_dir, "01_r2_and_mp_curves.png")
   )
   
   plot_criterion_comparison(
-    r2_curve, metric_results, p_true,
+    all_r2_curves, all_metric_results, p_true,
     file.path(output_dir, "02_criterion_comparison.png")
   )
   
@@ -403,7 +444,7 @@ create_all_plots <- function(r2_curve, metric_results, all_iterations,
   )
   
   plot_second_derivative(
-    r2_curve, metric_results$M_p,
+    all_r2_curves, all_metric_results,
     file.path(output_dir, "08_second_derivative.png")
   )
   

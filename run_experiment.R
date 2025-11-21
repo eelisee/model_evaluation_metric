@@ -212,20 +212,14 @@ run_scenario <- function(scenario, N_iterations = 5, output_dir = "results") {
   # Compute summary statistics
   summary_stats <- compute_summary_statistics(all_iterations, all_r2_curves, data$p_true)
   
-  # Use first iteration for representative plots
-  r2_curve_repr <- all_r2_curves[[1]]
-  data_repr <- generate_data(modifyList(scenario, list(seed = 1001)))
-  metric_results_repr <- apply_all_metrics(r2_curve_repr)
-  
-  # Create plots
+  # Create plots (using all iterations for averaging)
   cat("  Creating plots...\n")
   create_all_plots(
-    r2_curve = r2_curve_repr,
-    metric_results = metric_results_repr,
     all_iterations = all_iterations,
     all_r2_curves = all_r2_curves,
+    all_metric_results = all_metric_results,
     summary_stats = summary_stats,
-    p_true = data_repr$p_true,
+    p_true = data$p_true,
     output_dir = file.path(scenario_dir, "plots")
   )
   
