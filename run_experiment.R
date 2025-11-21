@@ -411,19 +411,14 @@ if (interactive()) {
   cat("  # Run all scenarios\n")
   cat("  results <- run_all_scenarios(N_iterations = 100)\n\n")
 } else {
-  # Command-line execution (only when run as main script, not when sourced)
-  script_args <- commandArgs(trailingOnly = FALSE)
-  is_sourced <- any(grepl("--file=", script_args))
+  # Command-line execution
+  args <- commandArgs(trailingOnly = TRUE)
   
-  if (!is_sourced) {
-    args <- commandArgs(trailingOnly = TRUE)
-    
-    if (length(args) == 0) {
-      # Default: run all with 20 iterations
-      run_all_scenarios(N_iterations = 20)
-    } else {
-      N <- as.integer(args[1])
-      run_all_scenarios(N_iterations = N)
-    }
+  if (length(args) == 0) {
+    # Default: run all with 100 iterations
+    run_all_scenarios(N_iterations = 100)
+  } else {
+    N <- as.integer(args[1])
+    run_all_scenarios(N_iterations = N)
   }
 }

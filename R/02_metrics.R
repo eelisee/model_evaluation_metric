@@ -123,32 +123,41 @@ metric_mp <- function(r2_curve) {
   
   # Compute M_p curve: M(p) = R²(p) / p
   M_p <- R2_vals / p_vals
+  n_points <- length(M_p)
   
-  # First differences: Δ₁(p) = M(p+1) - M(p)
-  delta1 <- diff(M_p)
+  # Second derivative using central finite differences with h=1
+  # u''(x) ≈ [u(x-h) - 2u(x) + u(x+h)] / h²
+  # Since h=1, we have: u''(x) = u(x-1) - 2u(x) + u(x+1)
   
-  # Second differences: Δ₂(p) = Δ₁(p+1) - Δ₁(p)
-  delta2 <- diff(delta1)
+  delta2 <- numeric(n_points)
+  
+  # Interior points: standard central difference
+  for (i in 2:(n_points - 1)) {
+    delta2[i] <- M_p[i - 1] - 2 * M_p[i] + M_p[i + 1]
+  }
+  
+  # Boundary points: forward/backward differences
+  # First point: u''(1) = -2*u(1) + u(2) (assuming u(0) = 0)
+  delta2[1] <- -2 * M_p[1] + M_p[2]
+  
+  # Last point: u''(n) = u(n-1) - 2*u(n) (assuming u(n+1) = u(n))
+  delta2[n_points] <- M_p[n_points - 1] - 2 * M_p[n_points]
   
   # Find maximum Δ₂ (inflection point)
   # This is where M_p curve has its steepest negative change
   max_idx <- which.max(delta2)
   
-  # The inflection point corresponds to p at position max_idx + 1
-  # (since delta2 is doubly differenced)
-  p_star <- p_vals[max_idx + 1]
-  
-  subset <- r2_curve$subset[[max_idx + 1]]
+  p_star <- p_vals[max_idx]
+  subset <- r2_curve$subset[[max_idx]]
   
   return(list(
     metric = "M_p",
     p_star = p_star,
     subset = subset,
     M_p = M_p,
-    delta1 = delta1,
     delta2 = delta2,
-    inflection_index = max_idx + 1,
-    method = "inflection_point_of_Mp"
+    inflection_index = max_idx,
+    method = "central_finite_difference"
   ))
 }
 
