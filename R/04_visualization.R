@@ -39,27 +39,22 @@ plot_r2_and_mp_curves <- function(all_r2_curves, all_metric_results, p_true, fil
        main = "R² vs Model Complexity (Averaged Across Iterations)", cex = 1.2, lwd = 2,
        ylim = c(0, 1), xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
   axis(1, at = p_vals)
-  grid()
+  grid(col = "gray90", lty = 1)
   abline(v = p_true, lty = 1, col = "green3", lwd = 2)
   abline(v = p_star_mp, lty = 2, col = "#E63946", lwd = 2)
   
   # Panel 2: M_p curve (averaged)
   plot(p_vals, M_p_avg, type = "b", pch = 19, col = "#A23B72",
-       xlab = "Number of Predictors (p)", ylab = expression(M[p]~"="~R^2/p),
-       main = "M_p Efficiency Curve (Averaged Across Iterations)", cex = 1.2, lwd = 2,
+       xlab = "Number of Predictors (p)", ylab = expression(M[p] == R^2 / p),
+       main = expression(paste(M[p], " Efficiency Curve (Averaged Across Iterations)")),
        xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
   axis(1, at = p_vals)
-  grid()
+  grid(col = "gray90", lty = 1)
   abline(v = p_true, lty = 1, col = "green3", lwd = 2)
   abline(v = p_star_mp, lty = 2, col = "#E63946", lwd = 2)
   
-  # Highlight optimal point
-  optimal_mp <- M_p_avg[p_vals == p_star_mp]
-  points(p_star_mp, optimal_mp, pch = 21, col = "#E63946", 
-         bg = "#E63946", cex = 2.5, lwd = 2)
-  
   legend("topright", legend = c("True p", "Most Frequent p*"),
-         col = c("green3", "#E63946"), lty = c(1, 2), lwd = 2, cex = 1.1)
+         col = c("green3", "#E63946"), lty = c(1, 2), lwd = 2, cex = 1.0)
   
   dev.off()
 }
@@ -117,7 +112,7 @@ plot_criterion_comparison <- function(all_r2_curves, all_metric_results, p_true,
        main = "Model Selection Criteria Comparison (Averaged)", lwd = 2, cex = 1.2,
        ylim = c(0, 1), xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
   axis(1, at = p_vals)
-  grid()
+  grid(col = "gray90", lty = 1)
   
   lines(p_vals, AIC_norm, type = "b", pch = 17, 
         col = "#2E86AB", lty = 2, lwd = 2, cex = 1.2)
@@ -199,38 +194,39 @@ plot_p_star_scatter <- function(all_iterations, p_true, filename) {
   png(filename, width = 10, height = 6, units = "in", res = 300)
   par(mar = c(4, 4.5, 3, 8))  # Extra right margin for legend
   
-  # Determine y-axis limits
-  y_max <- max(df$p_star) + 1
-  y_min <- 0
+  # Determine x-axis limits (now p* is on x-axis)
+  x_max <- max(df$p_star) + 1
+  x_min <- 0
   
-  plot(NULL, xlim = c(0.8, max(df$iteration) + 0.2), ylim = c(y_min, y_max),
-       xlab = "Iteration", ylab = "Selected p*",
+  # Swapped axes: p* on x-axis, iteration on y-axis
+  plot(NULL, xlim = c(x_min, x_max), ylim = c(0.8, max(df$iteration) + 0.2),
+       xlab = "Selected p*", ylab = "Iteration",
        main = "p* Selections Across Iterations",
        cex.lab = 1.2, cex.main = 1.3,
        xaxt = "n", yaxt = "n")
   
-  # Custom x-axis with integer ticks
-  axis(1, at = 1:max(df$iteration), cex.axis = 1.1)
+  # Custom x-axis
+  axis(1, at = 0:x_max, cex.axis = 1.1)
   
-  # Custom y-axis
-  axis(2, at = 0:y_max, cex.axis = 1.1, las = 1)
+  # Custom y-axis with integer ticks
+  axis(2, at = 1:max(df$iteration), cex.axis = 1.1, las = 1)
   
   # Add grid
   grid(nx = NULL, ny = NULL, col = "gray90", lty = 1)
   
-  # Add true p line
-  abline(h = p_true, col = "green3", lwd = 2.5, lty = 1)
+  # Add true p line (vertical now)
+  abline(v = p_true, col = "green3", lwd = 2.5, lty = 1)
   
-  # Plot points for each metric
+  # Plot points for each metric (axes swapped)
   for (i in seq_along(metrics)) {
     m <- metrics[i]
     subset <- df[df$metric == m, ]
-    points(subset$iteration, subset$p_star, 
+    points(subset$p_star, subset$iteration,
            col = colors[i], pch = pch_symbols[i], cex = 1.8, lwd = 2)
   }
   
   # Legend outside plot area
-  legend(x = max(df$iteration) * 1.05, y = y_max * 0.95, 
+  legend(x = x_max * 1.05, y = max(df$iteration) * 0.95, 
          legend = c(metrics, "True p"), 
          col = c(colors, "green3"), 
          pch = c(pch_symbols, NA),
@@ -272,6 +268,7 @@ plot_error_distribution <- function(all_iterations, filename) {
          main = m,
          cex.lab = 1.1, cex.main = 1.2)
     
+    grid(col = "gray90", lty = 1)
     abline(v = 0, col = "green3", lwd = 3)
     abline(v = mean(subset$error), col = "black", lwd = 2, lty = 2)
   }
@@ -300,6 +297,8 @@ plot_hit_rate <- function(summary_stats, filename) {
           ylim = c(0, 1),
           border = "white",
           cex.lab = 1.2, cex.main = 1.3, cex.names = 1.1)
+  
+  grid(NA, NULL, col = "gray90", lty = 1)
   
   # Add value labels on top of bars
   text(bp, summary_stats$HitRate + 0.05, 
@@ -332,6 +331,8 @@ plot_classification_breakdown <- function(summary_stats, filename) {
           border = "white",
           cex.lab = 1.2, cex.main = 1.3, cex.names = 1.1,
           args.legend = list(x = "topright", cex = 1.0, bty = "n"))
+  
+  grid(NA, NULL, col = "gray90", lty = 1)
   
   dev.off()
 }
@@ -448,5 +449,120 @@ create_all_plots <- function(all_iterations, all_r2_curves, all_metric_results,
     file.path(output_dir, "08_second_derivative.png")
   )
   
+  plot_subset_metrics(
+    summary_stats,
+    file.path(output_dir, "09_subset_metrics.png")
+  )
+  
+  plot_subset_confusion_matrix(
+    summary_stats,
+    file.path(output_dir, "10_subset_confusion_matrix.png")
+  )
+  
   cat("  ✓ All plots saved to:", output_dir, "\n")
+}
+
+
+#' Plot Subset Selection Metrics Comparison
+#'
+#' Shows Jaccard, Precision, Recall, F1 scores for all metrics
+#'
+#' @param summary_stats Data frame
+#' @param filename String
+#' @export
+plot_subset_metrics <- function(summary_stats, filename) {
+  
+  # Check if subset metrics are available
+  if (!("Jaccard" %in% names(summary_stats)) || all(is.na(summary_stats$Jaccard))) {
+    cat("    Skipping subset metrics plot (no subset data available)\n")
+    return(invisible(NULL))
+  }
+  
+  metrics <- summary_stats$metric
+  
+  png(filename, width = 10, height = 8, units = "in", res = 300)
+  par(mfrow = c(2, 2), mar = c(5, 5, 3, 2))
+  
+  colors <- c("#A23B72", "#2E86AB", "#F18F01")
+  
+  # Jaccard Index
+  barplot(summary_stats$Jaccard, names.arg = metrics, col = colors,
+          main = "Jaccard Index (Higher = Better)",
+          ylab = "Jaccard Index", ylim = c(0, 1),
+          cex.main = 1.3, cex.lab = 1.2, cex.names = 1.1)
+  abline(h = seq(0, 1, 0.2), lty = 3, col = "gray70")
+  grid(NA, NULL)
+  
+  # Precision
+  barplot(summary_stats$Precision, names.arg = metrics, col = colors,
+          main = "Precision (TP / (TP + FP))",
+          ylab = "Precision", ylim = c(0, 1),
+          cex.main = 1.3, cex.lab = 1.2, cex.names = 1.1)
+  abline(h = seq(0, 1, 0.2), lty = 3, col = "gray70")
+  grid(NA, NULL)
+  
+  # Recall
+  barplot(summary_stats$Recall, names.arg = metrics, col = colors,
+          main = "Recall (TP / (TP + FN))",
+          ylab = "Recall", ylim = c(0, 1),
+          cex.main = 1.3, cex.lab = 1.2, cex.names = 1.1)
+  abline(h = seq(0, 1, 0.2), lty = 3, col = "gray70")
+  grid(NA, NULL)
+  
+  # F1 Score
+  barplot(summary_stats$F1, names.arg = metrics, col = colors,
+          main = "F1 Score (Harmonic Mean)",
+          ylab = "F1 Score", ylim = c(0, 1),
+          cex.main = 1.3, cex.lab = 1.2, cex.names = 1.1)
+  abline(h = seq(0, 1, 0.2), lty = 3, col = "gray70")
+  grid(NA, NULL)
+  
+  dev.off()
+}
+
+
+#' Plot Subset Confusion Matrix (TP, FP, FN)
+#'
+#' Stacked bar chart showing average TP, FP, FN for each metric
+#'
+#' @param summary_stats Data frame
+#' @param filename String
+#' @export
+plot_subset_confusion_matrix <- function(summary_stats, filename) {
+  
+  # Check if subset metrics are available
+  if (!("avg_TP" %in% names(summary_stats)) || all(is.na(summary_stats$avg_TP))) {
+    cat("    Skipping confusion matrix plot (no subset data available)\n")
+    return(invisible(NULL))
+  }
+  
+  metrics <- summary_stats$metric
+  
+  # Create matrix for stacked barplot
+  confusion_data <- rbind(
+    TP = summary_stats$avg_TP,
+    FP = summary_stats$avg_FP,
+    FN = summary_stats$avg_FN
+  )
+  colnames(confusion_data) <- metrics
+  
+  png(filename, width = 10, height = 6, units = "in", res = 300)
+  par(mar = c(5, 5, 3, 8), xpd = TRUE)
+  
+  barplot(confusion_data, beside = TRUE,
+          col = c("#2E7D32", "#C62828", "#F57C00"),
+          main = "Subset Selection Performance (Avg TP, FP, FN)",
+          ylab = "Average Count",
+          xlab = "Metric",
+          cex.main = 1.3, cex.lab = 1.2, cex.names = 1.1,
+          ylim = c(0, max(confusion_data, na.rm = TRUE) * 1.2))
+  
+  grid(NA, NULL)
+  
+  legend("topright", inset = c(-0.2, 0),
+         legend = c("True Positives (TP)", "False Positives (FP)", "False Negatives (FN)"),
+         fill = c("#2E7D32", "#C62828", "#F57C00"),
+         bty = "n", cex = 1.0)
+  
+  dev.off()
 }

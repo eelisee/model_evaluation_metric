@@ -193,25 +193,28 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
       # Apply all metrics
       metric_results <- apply_all_metrics(r2_curve)
       
-      # Evaluate
-      eval <- evaluate_iteration(metric_results, data$p_true)
+      # Evaluate (with support_true for subset evaluation)
+      eval <- evaluate_iteration(metric_results, data$p_true, data$support_true)
       eval$iteration <- iter
       
       list(
         eval = eval,
         r2_curve = r2_curve,
         metric_results = metric_results,
-        p_true = data$p_true
+        p_true = data$p_true,
+        support_true = data$support_true
       )
       
     }, mc.cores = n_cores)
     
     # Extract results
     p_true <- results[[1]]$p_true
+    all_support_true <- list()
     for (iter in 1:N_iterations) {
       all_iterations[[iter]] <- results[[iter]]$eval
       all_r2_curves[[iter]] <- results[[iter]]$r2_curve
       all_metric_results[[iter]] <- results[[iter]]$metric_results
+      all_support_true[[iter]] <- results[[iter]]$support_true
     }
     
     cat(sprintf("  ✓ Completed %d iterations (parallel)\n\n", N_iterations))
@@ -219,6 +222,8 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
   } else {
     
     # Sequential execution (original code)
+    all_support_true <- list()
+    
     for (iter in 1:N_iterations) {
       
       cat(sprintf("  [%d/%d] Iteration %d...\n", iter, N_iterations, iter))
@@ -244,14 +249,15 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
       cat("      AIC:      p* = ", metric_results$AIC$p_star, "\n")
       cat("      BIC:      p* = ", metric_results$BIC$p_star, "\n")
       
-      # Evaluate
-      eval <- evaluate_iteration(metric_results, data$p_true)
+      # Evaluate (with support_true for subset evaluation)
+      eval <- evaluate_iteration(metric_results, data$p_true, data$support_true)
       eval$iteration <- iter
       
       # Store
       all_iterations[[iter]] <- eval
       all_r2_curves[[iter]] <- r2_curve
       all_metric_results[[iter]] <- metric_results
+      all_support_true[[iter]] <- data$support_true
       
       cat("    ✓ Done\n\n")
     }
@@ -267,7 +273,7 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
   }
   
   # Compute summary statistics
-  summary_stats <- compute_summary_statistics(all_iterations, all_r2_curves, p_true)
+  summary_stats <- compute_summary_statistics(all_iterations, all_r2_curves, p_true, all_metric_results)
   
   # Create plots (using all iterations for averaging)
   cat("  Creating plots...\n")
@@ -283,7 +289,7 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
   # Save summary
   cat("  Saving summary...\n")
   write_summary(scenario, summary_stats, all_iterations, 
-                file.path(scenario_dir, "summary.txt"))
+                file.path(scenario_dir, "summary.txt"), all_metric_results)
   
   # Save summary CSV
   write.csv(summary_stats, 
@@ -292,7 +298,7 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
   
   # Save detailed results CSV (all iterations x all p x all metrics)
   cat("  Saving detailed results...\n")
-  detailed_results <- create_detailed_results(all_iterations, all_r2_curves, all_metric_results)
+  detailed_results <- create_detailed_results(all_iterations, all_r2_curves, all_metric_results, all_support_true)
   write.csv(detailed_results,
             file.path(scenario_dir, "detailed_results.csv"),
             row.names = FALSE)
@@ -312,8 +318,9 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
 #' @param scenario List
 #' @param summary_stats Data frame
 #' @param all_iterations List
+#' @param all_metric_results List (optional, for delta2 values)
 #' @param filename String
-write_summary <- function(scenario, summary_stats, all_iterations, filename) {
+write_summary <- function(scenario, summary_stats, all_iterations, filename, all_metric_results = NULL) {
   
   sink(filename)
   
@@ -343,13 +350,38 @@ write_summary <- function(scenario, summary_stats, all_iterations, filename) {
   for (i in 1:nrow(summary_stats)) {
     m <- summary_stats$metric[i]
     cat(sprintf("\n%s:\n", m))
-    cat(sprintf("  MAE:         %.3f\n", summary_stats$MAE[i]))
-    cat(sprintf("  Bias:        %.3f\n", summary_stats$Bias[i]))
-    cat(sprintf("  Variance:    %.3f\n", summary_stats$Variance[i]))
-    cat(sprintf("  Hit Rate:    %.1f%%\n", summary_stats$HitRate[i] * 100))
-    cat(sprintf("  Correct:     %d\n", summary_stats$n_correct[i]))
-    cat(sprintf("  Underfit:    %d\n", summary_stats$n_underfit[i]))
-    cat(sprintf("  Overfit:     %d\n", summary_stats$n_overfit[i]))
+    cat(sprintf("  Cardinality Metrics:\n"))
+    cat(sprintf("    MAE:         %.3f\n", summary_stats$MAE[i]))
+    cat(sprintf("    Bias:        %.3f\n", summary_stats$Bias[i]))
+    cat(sprintf("    Variance:    %.3f\n", summary_stats$Variance[i]))
+    cat(sprintf("    Hit Rate:    %.1f%%\n", summary_stats$HitRate[i] * 100))
+    cat(sprintf("    Correct:     %d\n", summary_stats$n_correct[i]))
+    cat(sprintf("    Underfit:    %d\n", summary_stats$n_underfit[i]))
+    cat(sprintf("    Overfit:     %d\n", summary_stats$n_overfit[i]))
+    
+    cat(sprintf("\n  Subset Selection Metrics:\n"))
+    cat(sprintf("    Jaccard Index:      %.3f\n", summary_stats$Jaccard[i]))
+    cat(sprintf("    Precision:          %.3f\n", summary_stats$Precision[i]))
+    cat(sprintf("    Recall:             %.3f\n", summary_stats$Recall[i]))
+    cat(sprintf("    F1 Score:           %.3f\n", summary_stats$F1[i]))
+    cat(sprintf("    Avg True Pos:       %.2f\n", summary_stats$avg_TP[i]))
+    cat(sprintf("    Avg False Pos:      %.2f\n", summary_stats$avg_FP[i]))
+    cat(sprintf("    Avg False Neg:      %.2f\n", summary_stats$avg_FN[i]))
+    cat(sprintf("    Subset Hit Rate:    %.1f%%\n", summary_stats$SubsetHitRate[i] * 100))
+    
+    # Add delta2 for M_p metric (from all_metric_results if available)
+    if (m == "M_p" && !is.null(all_metric_results)) {
+      # Get delta2 from first iteration
+      delta2 <- all_metric_results[[1]]$M_p$delta2
+      
+      if (!is.null(delta2)) {
+        cat("\n  Second Derivative (delta2) of M_p:\n")
+        p_vals <- 1:length(delta2)
+        for (p in p_vals) {
+          cat(sprintf("    p=%d: %+.6e\n", p, delta2[p]))
+        }
+      }
+    }
   }
   
   cat("\n")
@@ -404,7 +436,11 @@ run_all_scenarios <- function(N_iterations = 100, output_dir = "results") {
 # MAIN EXECUTION
 # ============================================================================
 
-if (interactive()) {
+# Check if we're being sourced for testing (skip auto-execution)
+if (exists(".skip_auto_run") && .skip_auto_run) {
+  # Sourced for testing - don't auto-run
+  invisible(NULL)
+} else if (interactive()) {
   cat("\nInteractive mode. To run experiments:\n\n")
   cat("  # Run single scenario\n")
   cat("  result <- run_scenario(define_scenarios()$A1, N_iterations = 10)\n\n")

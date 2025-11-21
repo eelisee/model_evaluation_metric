@@ -143,12 +143,15 @@ metric_mp <- function(r2_curve) {
   # Last point: u''(n) = u(n-1) - 2*u(n) (assuming u(n+1) = u(n))
   delta2[n_points] <- M_p[n_points - 1] - 2 * M_p[n_points]
   
-  # Find maximum Δ₂ (inflection point)
-  # This is where M_p curve has its steepest negative change
-  max_idx <- which.max(delta2)
+  # Find inflection point as maximum of second derivative
+  # This represents where the M_p curve transitions from concave to convex
+  argmax_delta2 <- which.max(delta2)
   
-  p_star <- p_vals[max_idx]
-  subset <- r2_curve$subset[[max_idx]]
+  # p* is one step before the maximum (since delta2[i] represents change at i)
+  p_star <- p_vals[argmax_delta2 - 1]
+  
+  # Get corresponding subset (use index argmax_delta2 - 1)
+  subset <- r2_curve$subset[[argmax_delta2 - 1]]
   
   return(list(
     metric = "M_p",
@@ -156,8 +159,8 @@ metric_mp <- function(r2_curve) {
     subset = subset,
     M_p = M_p,
     delta2 = delta2,
-    inflection_index = max_idx,
-    method = "central_finite_difference"
+    inflection_index = argmax_delta2,
+    method = "argmax_delta2_minus_1"
   ))
 }
 

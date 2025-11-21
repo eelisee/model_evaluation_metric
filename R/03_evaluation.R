@@ -6,9 +6,10 @@
 #'
 #' @param metric_result List. Result from apply_all_metrics()
 #' @param p_true Integer. True model size
-#' @return Data frame with metric, p_star, error, hit
+#' @param support_true Integer vector. Indices of true active variables
+#' @return Data frame with metric, p_star, error, hit, and subset metrics
 #' @export
-evaluate_iteration <- function(metric_result, p_true) {
+evaluate_iteration <- function(metric_result, p_true, support_true = NULL) {
   
   metrics <- names(metric_result)
   
@@ -27,6 +28,46 @@ evaluate_iteration <- function(metric_result, p_true) {
       classification <- "overfit"
     }
     
+    # Subset evaluation metrics (if support_true is provided)
+    if (!is.null(support_true)) {
+      chosen_subset <- res$subset
+      
+      # True Positives: correctly identified active variables
+      TP <- length(intersect(support_true, chosen_subset))
+      
+      # False Positives: incorrectly identified inactive variables
+      FP <- length(setdiff(chosen_subset, support_true))
+      
+      # False Negatives: missed active variables
+      FN <- length(setdiff(support_true, chosen_subset))
+      
+      # Jaccard Index: intersection / union
+      jaccard <- TP / (TP + FP + FN)
+      
+      # Precision: TP / (TP + FP)
+      precision <- if (TP + FP > 0) TP / (TP + FP) else 0
+      
+      # Recall (Sensitivity): TP / (TP + FN)
+      recall <- if (TP + FN > 0) TP / (TP + FN) else 0
+      
+      # F1 Score: harmonic mean of precision and recall
+      f1_score <- if (precision + recall > 0) 2 * (precision * recall) / (precision + recall) else 0
+      
+      # Perfect subset recovery
+      subset_hit <- (TP == length(support_true) && FP == 0)
+      
+    } else {
+      # If support_true not provided, set all to NA
+      TP <- NA
+      FP <- NA
+      FN <- NA
+      jaccard <- NA
+      precision <- NA
+      recall <- NA
+      f1_score <- NA
+      subset_hit <- NA
+    }
+    
     data.frame(
       metric = m,
       p_star = p_star,
@@ -34,6 +75,14 @@ evaluate_iteration <- function(metric_result, p_true) {
       abs_error = abs(error),
       hit = (p_star == p_true),
       classification = classification,
+      TP = TP,
+      FP = FP,
+      FN = FN,
+      jaccard = jaccard,
+      precision = precision,
+      recall = recall,
+      f1_score = f1_score,
+      subset_hit = subset_hit,
       stringsAsFactors = FALSE
     )
   })
@@ -47,9 +96,10 @@ evaluate_iteration <- function(metric_result, p_true) {
 #' @param all_iterations List of evaluation results
 #' @param all_r2_curves List of R² curves from all iterations
 #' @param p_true Integer. True model size
+#' @param all_metric_results List of metric results (optional, for delta2 extraction)
 #' @return Data frame with MAE, Bias, Var, Hit Rate per metric + metric values per p
 #' @export
-compute_summary_statistics <- function(all_iterations, all_r2_curves, p_true) {
+compute_summary_statistics <- function(all_iterations, all_r2_curves, p_true, all_metric_results = NULL) {
   
   # Combine all iterations
   df <- do.call(rbind, all_iterations)
@@ -78,6 +128,16 @@ compute_summary_statistics <- function(all_iterations, all_r2_curves, p_true) {
     n_underfit <- sum(subset$classification == "underfit")
     n_overfit <- sum(subset$classification == "overfit")
     
+    # Subset evaluation metrics (average across iterations)
+    avg_jaccard <- mean(subset$jaccard, na.rm = TRUE)
+    avg_precision <- mean(subset$precision, na.rm = TRUE)
+    avg_recall <- mean(subset$recall, na.rm = TRUE)
+    avg_f1 <- mean(subset$f1_score, na.rm = TRUE)
+    avg_TP <- mean(subset$TP, na.rm = TRUE)
+    avg_FP <- mean(subset$FP, na.rm = TRUE)
+    avg_FN <- mean(subset$FN, na.rm = TRUE)
+    subset_hit_rate <- mean(subset$subset_hit, na.rm = TRUE)
+    
     data.frame(
       metric = m,
       MAE = MAE,
@@ -87,6 +147,14 @@ compute_summary_statistics <- function(all_iterations, all_r2_curves, p_true) {
       n_correct = n_correct,
       n_underfit = n_underfit,
       n_overfit = n_overfit,
+      Jaccard = avg_jaccard,
+      Precision = avg_precision,
+      Recall = avg_recall,
+      F1 = avg_f1,
+      avg_TP = avg_TP,
+      avg_FP = avg_FP,
+      avg_FN = avg_FN,
+      SubsetHitRate = subset_hit_rate,
       stringsAsFactors = FALSE
     )
   })
@@ -114,6 +182,9 @@ compute_summary_statistics <- function(all_iterations, all_r2_curves, p_true) {
     summary_df[summary_df$metric == "BIC", paste0("p", p, "_value")] <- r2_curve$BIC[idx]
   }
   
+  # Note: delta2 values are not included in summary table
+  # They are shown in the summary.txt interpretation section for M_p only
+  
   return(summary_df)
 }
 
@@ -126,9 +197,10 @@ compute_summary_statistics <- function(all_iterations, all_r2_curves, p_true) {
 #' @param all_iterations List of evaluation results
 #' @param all_r2_curves List of R² curves from all iterations
 #' @param all_metric_results List of metric results from all iterations
-#' @return Data frame with columns: iteration, p, R2, M_p, AIC, BIC, selected_by_Mp, selected_by_AIC, selected_by_BIC
+#' @param all_support_true List of support_true vectors from all iterations
+#' @return Data frame with columns: iteration, p, R2, M_p, AIC, BIC, selected_by_*, subsets, support_true
 #' @export
-create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_results) {
+create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_results, all_support_true = NULL) {
   
   detailed_rows <- list()
   
@@ -140,14 +212,28 @@ create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_re
     # Compute M_p curve
     M_p <- r2_curve$R2 / r2_curve$p
     
-    # Get selected p* for each metric
+    # Get selected p* and subsets for each metric
     p_star_mp <- metric_results$M_p$p_star
     p_star_aic <- metric_results$AIC$p_star
     p_star_bic <- metric_results$BIC$p_star
     
+    subset_mp <- paste(metric_results$M_p$subset, collapse = ",")
+    subset_aic <- paste(metric_results$AIC$subset, collapse = ",")
+    subset_bic <- paste(metric_results$BIC$subset, collapse = ",")
+    
+    # Get support_true for this iteration
+    support_true_str <- if (!is.null(all_support_true)) {
+      paste(all_support_true[[iter]], collapse = ",")
+    } else {
+      NA
+    }
+    
     # Create row for each p
     for (i in seq_along(r2_curve$p)) {
       p <- r2_curve$p[i]
+      
+      # Get subset for this p from r2_curve
+      subset_p <- paste(r2_curve$subset[[i]], collapse = ",")
       
       detailed_rows[[length(detailed_rows) + 1]] <- data.frame(
         iteration = iter,
@@ -159,6 +245,11 @@ create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_re
         selected_by_Mp = (p == p_star_mp),
         selected_by_AIC = (p == p_star_aic),
         selected_by_BIC = (p == p_star_bic),
+        subset_p = subset_p,
+        subset_Mp = if (p == p_star_mp) subset_mp else NA,
+        subset_AIC = if (p == p_star_aic) subset_aic else NA,
+        subset_BIC = if (p == p_star_bic) subset_bic else NA,
+        support_true = support_true_str,
         stringsAsFactors = FALSE
       )
     }
