@@ -67,18 +67,28 @@ compute_r2_curve <- function(X, y, n_cores = NULL) {
       
     }, mc.cores = n_cores)
     
-    # Find best subset
+    # Find best subsets by different criteria
     R2_vals <- sapply(subset_results, function(x) x$R2)
-    best_idx <- which.max(R2_vals)
-    best <- subset_results[[best_idx]]
+    AIC_vals <- sapply(subset_results, function(x) x$AIC)
+    BIC_vals <- sapply(subset_results, function(x) x$BIC)
+    
+    best_R2_idx <- which.max(R2_vals)
+    best_AIC_idx <- which.min(AIC_vals)
+    best_BIC_idx <- which.min(BIC_vals)
+    
+    best_R2 <- subset_results[[best_R2_idx]]
+    best_AIC <- subset_results[[best_AIC_idx]]
+    best_BIC <- subset_results[[best_BIC_idx]]
     
     results[[p]] <- data.frame(
       p = p,
-      R2 = best$R2,
-      RSS = best$RSS,
-      AIC = best$AIC,
-      BIC = best$BIC,
-      subset = I(list(best$subset))
+      R2 = best_R2$R2,
+      RSS = best_R2$RSS,
+      AIC = best_R2$AIC,
+      BIC = best_R2$BIC,
+      subset = I(list(best_R2$subset)),
+      subset_AIC = I(list(best_AIC$subset)),
+      subset_BIC = I(list(best_BIC$subset))
     )
     
     cat(" ✓\n")

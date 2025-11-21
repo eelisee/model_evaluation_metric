@@ -202,7 +202,8 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
         r2_curve = r2_curve,
         metric_results = metric_results,
         p_true = data$p_true,
-        support_true = data$support_true
+        support_true = data$support_true,
+        beta_true = data$beta_true
       )
       
     }, mc.cores = n_cores)
@@ -210,11 +211,13 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
     # Extract results
     p_true <- results[[1]]$p_true
     all_support_true <- list()
+    all_beta_true <- list()
     for (iter in 1:N_iterations) {
       all_iterations[[iter]] <- results[[iter]]$eval
       all_r2_curves[[iter]] <- results[[iter]]$r2_curve
       all_metric_results[[iter]] <- results[[iter]]$metric_results
       all_support_true[[iter]] <- results[[iter]]$support_true
+      all_beta_true[[iter]] <- results[[iter]]$beta_true
     }
     
     cat(sprintf("  ✓ Completed %d iterations (parallel)\n\n", N_iterations))
@@ -223,6 +226,7 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
     
     # Sequential execution (original code)
     all_support_true <- list()
+    all_beta_true <- list()
     
     for (iter in 1:N_iterations) {
       
@@ -258,6 +262,7 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
       all_r2_curves[[iter]] <- r2_curve
       all_metric_results[[iter]] <- metric_results
       all_support_true[[iter]] <- data$support_true
+      all_beta_true[[iter]] <- data$beta_true
       
       cat("    ✓ Done\n\n")
     }
@@ -298,7 +303,7 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
   
   # Save detailed results CSV (all iterations x all p x all metrics)
   cat("  Saving detailed results...\n")
-  detailed_results <- create_detailed_results(all_iterations, all_r2_curves, all_metric_results, all_support_true)
+  detailed_results <- create_detailed_results(all_iterations, all_r2_curves, all_metric_results, all_support_true, all_beta_true)
   write.csv(detailed_results,
             file.path(scenario_dir, "detailed_results.csv"),
             row.names = FALSE)

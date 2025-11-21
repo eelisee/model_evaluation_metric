@@ -39,7 +39,7 @@ plot_r2_and_mp_curves <- function(all_r2_curves, all_metric_results, p_true, fil
        main = "R² vs Model Complexity (Averaged Across Iterations)", cex = 1.2, lwd = 2,
        ylim = c(0, 1), xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
   axis(1, at = p_vals)
-  grid(col = "gray90", lty = 1)
+  grid(col = "gray90", lty = 3)
   abline(v = p_true, lty = 1, col = "green3", lwd = 2)
   abline(v = p_star_mp, lty = 2, col = "#E63946", lwd = 2)
   
@@ -49,7 +49,7 @@ plot_r2_and_mp_curves <- function(all_r2_curves, all_metric_results, p_true, fil
        main = expression(paste(M[p], " Efficiency Curve (Averaged Across Iterations)")),
        xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
   axis(1, at = p_vals)
-  grid(col = "gray90", lty = 1)
+  grid(col = "gray90", lty = 3)
   abline(v = p_true, lty = 1, col = "green3", lwd = 2)
   abline(v = p_star_mp, lty = 2, col = "#E63946", lwd = 2)
   
@@ -112,7 +112,7 @@ plot_criterion_comparison <- function(all_r2_curves, all_metric_results, p_true,
        main = "Model Selection Criteria Comparison (Averaged)", lwd = 2, cex = 1.2,
        ylim = c(0, 1), xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
   axis(1, at = p_vals)
-  grid(col = "gray90", lty = 1)
+  grid(col = "gray90", lty = 3)
   
   lines(p_vals, AIC_norm, type = "b", pch = 17, 
         col = "#2E86AB", lty = 2, lwd = 2, cex = 1.2)
@@ -212,7 +212,7 @@ plot_p_star_scatter <- function(all_iterations, p_true, filename) {
   axis(2, at = 1:max(df$iteration), cex.axis = 1.1, las = 1)
   
   # Add grid
-  grid(nx = NULL, ny = NULL, col = "gray90", lty = 1)
+  grid(nx = NULL, ny = NULL, col = "gray90", lty = 3)
   
   # Add true p line (vertical now)
   abline(v = p_true, col = "green3", lwd = 2.5, lty = 1)
@@ -268,7 +268,7 @@ plot_error_distribution <- function(all_iterations, filename) {
          main = m,
          cex.lab = 1.1, cex.main = 1.2)
     
-    grid(col = "gray90", lty = 1)
+    grid(col = "gray90", lty = 3)
     abline(v = 0, col = "green3", lwd = 3)
     abline(v = mean(subset$error), col = "black", lwd = 2, lty = 2)
   }
@@ -298,7 +298,7 @@ plot_hit_rate <- function(summary_stats, filename) {
           border = "white",
           cex.lab = 1.2, cex.main = 1.3, cex.names = 1.1)
   
-  grid(NA, NULL, col = "gray90", lty = 1)
+  grid(NA, NULL, col = "gray90", lty = 3)
   
   # Add value labels on top of bars
   text(bp, summary_stats$HitRate + 0.05, 
@@ -332,7 +332,7 @@ plot_classification_breakdown <- function(summary_stats, filename) {
           cex.lab = 1.2, cex.main = 1.3, cex.names = 1.1,
           args.legend = list(x = "topright", cex = 1.0, bty = "n"))
   
-  grid(NA, NULL, col = "gray90", lty = 1)
+  grid(NA, NULL, col = "gray90", lty = 3)
   
   dev.off()
 }

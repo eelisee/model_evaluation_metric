@@ -2,45 +2,51 @@
 
 ## Overview
 
-This project implements and empirically investigates the **M_p** model selection metric, which balances model fit and complexity. The metric is defined as:
+This project implements and empirically investigates the **M_p** model selection metric, which balances model fit and complexity through an inflection point detection method. The metric is defined as:
 
-$$M_p(S) = \frac{R^2_S}{p}$$
+$$M_p = \frac{R^2_p}{p}$$
 
 where:
-- $R^2_S$ is the coefficient of determination for model $S$
-- $p = |S|$ is the number of active regressors in the model
+- $R^2_p$ is the coefficient of determination for the best model with $p$ predictors
+- $p$ is the number of active predictors in the model
 
-The M_p metric expresses the **explained variance per parameter**, quantifying how efficiently each regressor contributes to explanatory power.
+The M_p metric expresses the **explained variance per parameter**, quantifying how efficiently each predictor contributes to explanatory power.
 
 ## Theoretical Background
 
 ### Model Setting
 
-We assume a linear model:
+We assume a linear regression model:
 
 $$y = X\beta + \varepsilon$$
 
 where:
 - $y \in \mathbb{R}^n$: response vector
-- $X \in \mathbb{R}^{n \times P_{\max}}$: design matrix with $P_{\max}$ potential predictors
-- $\beta \in \mathbb{R}^{P_{\max}}$: coefficient vector
+- $X \in \mathbb{R}^{n \times p}$: design matrix with $p$ potential predictors
+- $\beta \in \mathbb{R}^{p}$: coefficient vector
 - $\varepsilon \sim \mathcal{N}(0, \sigma^2 I_n)$: normally distributed noise
 
 ### R² Definition
 
-For any model $S \subseteq \{1, \dots, P_{\max}\}$:
+For any model with predictor subset of size $p$:
 
-$$R^2_S = 1 - \frac{RSS_S}{TSS}$$
+$$R^2_p = 1 - \frac{RSS_p}{TSS}$$
 
 where:
-- $RSS_S = \sum_{i=1}^{n} (y_i - \hat{y}_{S,i})^2$ (residual sum of squares)
+- $RSS_p = \sum_{i=1}^{n} (y_i - \hat{y}_{p,i})^2$ (residual sum of squares)
 - $TSS = \sum_{i=1}^{n} (y_i - \bar{y})^2$ (total sum of squares)
 
 ### Selection Strategy
 
-The framework implements an **M_p steep drop rule**: identify the model complexity $p^*$ just before the steepest decline in M_p values. This represents the optimal trade-off between explanatory power and parsimony.
+The framework implements an **M_p inflection point method** using discrete second derivatives:
 
-For comparison, the framework also computes AIC and BIC selections.
+$$\Delta_1(p) = M_{p+1} - M_p \quad \text{(first difference)}$$
+$$\Delta_2(p) = \Delta_1(p+1) - \Delta_1(p) \quad \text{(second difference)}$$
+$$p^* = \arg\min_p \Delta_2(p) \quad \text{(inflection point)}$$
+
+This identifies the model complexity $p^*$ where the efficiency curve shows the steepest decline, representing the optimal trade-off between explanatory power and parsimony.
+
+For comparison, the framework also evaluates AIC and BIC selection criteria.
 
 ## Project Structure
 
@@ -48,17 +54,14 @@ For comparison, the framework also computes AIC and BIC selections.
 metric/
 ├── README.md                    # This file
 ├── USER_GUIDE.md                # Detailed usage guide
-├── run_experiments.R            # Main entry point
+├── run_experiment.R             # Main experiment runner
 ├── R/                           # Core modules
-│   ├── data_generation.R        # Data generation with multiple distributions
-│   ├── model_evaluation.R       # Model enumeration and evaluation
-│   ├── selection_rules.R        # M_p selection rule
-│   ├── recovery_metrics.R       # Performance metrics
-│   ├── scenarios.R              # 14 test scenarios
-│   ├── io_utilities.R           # I/O and reporting
-│   ├── visualization.R          # Plotting functions
-│   └── experiment_runner.R      # Experiment orchestration
-└── results/                     # Output directory (created automatically)
+│   ├── 01_data_generation.R     # Data generation with various scenarios
+│   ├── 02_metrics.R             # R² curve computation and M_p metric
+│   ├── 03_evaluation.R          # Performance evaluation and statistics
+│   └── 04_visualization.R       # Plotting functions
+├── results/                     # Output directory (created automatically)
+└── old/                         # Legacy code (archived)
 ```
 
 ## Quick Start
@@ -66,220 +69,211 @@ metric/
 ### Requirements
 
 - R ≥ 4.0.0
-- Optional packages (auto-installed if needed):
-  - `jsonlite` (for JSON metadata)
-  - `ggplot2` (for enhanced plots, falls back to base R)
-
-### Run a Quick Test
-
-```r
-source("run_experiments.R")
-result <- run_quick_test()
-```
-
-This runs scenario S2 (baseline) with 100 observations and 10 predictors, completes in ~1-2 seconds, and saves results to `results_test/`.
+- Required package: `parallel` (included in base R)
 
 ### Run a Single Scenario
 
 ```r
-source("run_experiments.R")
-result <- run_single_scenario(
-  scenario_id = "S2",
-  n_reps = 1,
-  output_dir = "results"
-)
-```
+source("run_experiment.R")
 
-### Run Multiple Scenarios
-
-```r
-source("run_experiments.R")
-results <- run_batch_scenarios(
-  scenario_ids = c("S2", "S6", "S7"),
-  n_reps = 10,
-  output_dir = "results"
-)
+# Run baseline scenario with 100 iterations
+scenarios <- define_scenarios()
+result <- run_scenario(scenarios$A1, N_iterations = 100)
 ```
 
 ### Run All Scenarios
 
 ```r
-source("run_experiments.R")
-results <- run_all_scenarios(
-  n_reps = 10,
-  output_dir = "results"
-)
+source("run_experiment.R")
+
+# Run all scenarios with 100 iterations each
+results <- run_all_scenarios(N_iterations = 100)
 ```
 
-For detailed instructions, see [`USER_GUIDE.md`](USER_GUIDE.md).
+Results are automatically saved to `results/<scenario_name>/` with detailed outputs.
 
 ## Test Scenarios
 
-The framework includes 14 comprehensive test scenarios:
+The framework includes **11 comprehensive test scenarios** organized into three categories:
 
-### Core Scenarios
+### A) Baseline Scenarios
 
-**S1: Constant Signal Strength** ! does not work yet!
-- Tests degeneracy detection when all predictors contribute equally
-- Expected behavior: M_p remains flat, rule should detect degeneracy
+**A1: Baseline Uncorrelated**
+- Uncorrelated predictors (ρ = 0), sparse β (3 active), strong signal
+- Standard reference scenario for comparison
 
-**S2: Baseline (Descending Signal)**
-- Standard scenario with decreasing signal strength
-- Tests basic functionality and serves as reference
+**A2: Single Predictor**
+- Only one relevant variable among 20 candidates
+- Tests ability to identify minimal models
 
-**S3: Random Order Signal**
-- Verifies order-invariance of the metric
-- Ensures M_p selection doesn't depend on predictor ordering
+**A3: Full Support**
+- All variables are relevant (complete model)
+- Tests behavior when no sparsity exists
 
-### Predictor Properties
+### B) Structural Scenarios (Correlation)
 
-**S4: Heteroscedastic Predictors**
-- Predictors have different variances
-- Tests robustness to predictor scaling
+**B1_weak: Weak AR(1) Correlation**
+- Autoregressive correlation structure with ρ = 0.5
+- Tests robustness to moderate predictor correlation
 
-**S5: Non-Zero Means**
-- Predictors centered at different values
-- Verifies proper mean-centering in calculations
+**B1_strong: Strong AR(1) Correlation**
+- Autoregressive correlation structure with ρ = 0.8
+- Tests performance under strong multicollinearity
 
-### Collinearity
+**B2: Compound Symmetry**
+- Exchangeable correlation structure (constant ρ = 0.5)
+- Tests uniform correlation patterns
 
-**S6: Collinearity**
-- Three sub-scenarios: ρ = 0.3 (weak), 0.6 (moderate), 0.9 (strong)
-- Tests performance under correlated predictors
+**B3: Block Structure**
+- Block-diagonal correlation (groups of 5 with ρ = 0.7)
+- Tests group-wise correlation patterns
 
-### Signal Strength
+### C) Support Scenarios (Signal Strength)
 
-**S7: Weak Signal**
-- Three sub-scenarios: SNR = 0.5 (very weak), 1.0 (weak), 2.0 (moderate)
-- Tests sensitivity to noise levels
+**C1: Weak Signals**
+- Five weak signals among noise variables
+- Tests sensitivity to low signal strength
 
-### Complex Structures
+**C2: Many Weak Signals**
+- Ten weak signals (half the variables active)
+- Tests performance with high-dimensional active sets
 
-**S8: Nonlinear Terms**
-- True model includes squared terms
-- Tests performance when linear assumptions violated
-
-**S9: Interaction Terms**
-- True model includes interaction X₁ × X₂
-- Tests detection of multiplicative effects
-
-**S10: Redundant Variables**
-- Multiple irrelevant predictors among true signals
-- Tests specificity and false positive control
-
-**S11: Measurement Error**
-- Predictors observed with noise
-- Tests robustness to attenuation bias
-
-**S12: Non-Gaussian Predictors**
-- Two sub-scenarios: t-distribution (heavy tails), lognormal (skewed)
-- Tests robustness to distributional assumptions
-
-**S13: Heteroscedastic Errors**
-- Error variance depends on predictor values
-- Tests performance under non-constant variance
-
-**S14: Group Sparsity**
-- Predictors organized in groups, some groups fully inactive
-- Tests block-level selection behavior
+**C3: Mixed Signals**
+- Eight variables with heterogeneous signal strengths
+- Tests ability to handle varying coefficient magnitudes
 
 ## Output Structure
 
-Each experiment creates a timestamped directory:
+Each scenario creates a dedicated output directory:
 
 ```
-results/<scenario>__<timestamp>/
-├── meta.json                      # Full configuration (JSON)
-├── data.RData                     # Generated data (X, y, true_beta)
-├── models_full.csv                # All evaluated models
-├── best_models_by_p.csv           # Best model per cardinality
-├── recovery_stats.csv             # TP/FP/FN/Precision/Recall/F1
-├── selection_comparison.csv       # M_p vs AIC vs BIC
-├── ranking_correlations.csv       # Spearman correlations
-├── aggregate_by_p.csv             # Summary statistics by p
-├── summary.txt                    # Human-readable summary
+results/<scenario_name>/
+├── summary.txt                  # Human-readable summary report
+├── summary_stats.csv            # Aggregated statistics across iterations
+├── detailed_results.csv         # Full results (all iterations × p × metrics)
 └── plots/
-    ├── mp_and_r2_curves.png       # M_p and R² progression
-    ├── mp_efficiency_curve.png    # M_p values by cardinality
-    ├── r2_curve.png               # R² by cardinality
-    ├── all_models_scatter.png     # All models visualized
-    └── criterion_comparison.png   # M_p vs AIC/BIC selections
+    ├── r2_and_mp_curves.png     # R² and M_p progression (averaged)
+    ├── criterion_comparison.png # M_p vs AIC vs BIC (normalized)
+    ├── mp_inflection.png        # M_p inflection point detection
+    ├── delta2_plot.png          # Second derivative visualization
+    └── boxplot_errors.png       # Error distribution across metrics
 ```
 
-The `summary.txt` includes:
-- Scenario configuration
-- Selection results (M_p, AIC, BIC)
-- Recovery metrics (when true model known)
-- **Best Models by Cardinality** table showing top models for each complexity level
-- Execution timing
+### Key Output Files
+
+**summary.txt** includes:
+- Scenario configuration (n, p, correlation structure, etc.)
+- Selection performance (MAE, Bias, Variance, Hit Rate)
+- Subset recovery metrics (TP, FP, FN, Precision, Recall, F1, Jaccard)
+- Classification breakdown (correct/underfit/overfit percentages)
+
+**detailed_results.csv** contains:
+- `iteration`: Monte Carlo iteration number
+- `p`: Model complexity (1 to p_max)
+- `metric`: Selection criterion (M_p, AIC, BIC)
+- `subset_p`: True variables ordered by coefficient magnitude
+- `subset_Mp`: Best subset selected by M_p at complexity p
+- `subset_AIC`: Best subset selected by AIC at complexity p
+- `subset_BIC`: Best subset selected by BIC at complexity p
+- Performance metrics for each iteration
+
+**summary_stats.csv** aggregates:
+- Selection accuracy (MAE, Bias, Variance, Hit Rate) per metric
+- Subset recovery performance (mean Precision, Recall, F1, Jaccard)
+- Average R², M_p, Delta2 values by model complexity
 
 ## Core Functions
 
-### Data Generation
+### Data Generation (`R/01_data_generation.R`)
 
 ```r
-generate_data_advanced(config)
+generate_data(scenario)
 ```
 
-Supports:
-- Multiple distributions: normal, t, uniform, lognormal
-- Correlation structures: identity, AR(1), block, compound symmetry
-- Special cases: measurement error, heteroscedasticity, nonlinear terms, interactions
+Generates synthetic datasets with configurable properties:
+- **Covariance structures**: identity, AR(1), compound symmetry, block
+- **Support specifications**: single variable, sparse, full support
+- **Signal strengths**: strong, weak, mixed
 
-### Model Evaluation
+### R² Curve Computation (`R/02_metrics.R`)
 
 ```r
-enumerate_models(p_max, strategy = "full")
-evaluate_model(X, y, subset)
-evaluate_all_models_batch(X, y, subsets)
-aggregate_by_p(results)
+compute_r2_curve(X, y, n_cores = detectCores() - 1)
 ```
 
-Computes for each model:
-- R², adjusted R², M_p
-- AIC, BIC
-- Coefficients and standard errors
+Performs exhaustive best subset search:
+- For each $p = 1, \ldots, p_{\max}$, finds the subset maximizing R²
+- Computes R², AIC, BIC for each cardinality
+- Parallelized for computational efficiency
+- Returns optimal subsets for each criterion
 
-### Selection
+### Selection Metrics (`R/02_metrics.R`)
 
 ```r
-selection_rule_mp(best_models)
-apply_selection_rule(results, rule = "mp")
+apply_all_metrics(r2_curve)
 ```
 
-Implements M_p steep drop rule and returns comparison with AIC/BIC.
+Applies three selection criteria:
+- **M_p**: Inflection point method (discrete second derivative)
+- **AIC**: Akaike Information Criterion (minimum)
+- **BIC**: Bayesian Information Criterion (minimum)
 
-### Performance Metrics
+Returns selected model size and subset for each criterion.
+
+### Evaluation (`R/03_evaluation.R`)
 
 ```r
-compute_recovery_metrics(selected, true, p_max)
-evaluate_selection_rules(selection_results, true_beta)
+evaluate_iteration(metric_results, p_true, support_true)
+compute_summary_statistics(all_iterations, all_r2_curves, p_true, all_metric_results)
 ```
 
-Computes:
-- Confusion matrix (TP, FP, FN)
-- Classification metrics (Precision, Recall, F1)
-- Distance metrics (Hamming distance)
+Computes performance metrics:
+- **Size accuracy**: MAE, Bias, Variance, Hit Rate
+- **Subset recovery**: TP, FP, FN, Precision, Recall, F1, Jaccard Index
+- **Classification**: Correct, Underfit, Overfit percentages
 
-### Visualization
+### Visualization (`R/04_visualization.R`)
 
 ```r
-plot_mp_curves(results, true_p = NULL)
-plot_criterion_comparison(results, selections)
+create_all_plots(all_iterations, all_r2_curves, all_metric_results, 
+                 summary_stats, p_true, output_dir)
 ```
 
-**Test Results:** All scenarios execute successfully. Baseline test (S2) shows:
-- M_p selection: close to true model (F1 = 0.800)
-- BIC comparison: perfect recovery (F1 = 1.000)
-- Execution time: ~1.2 seconds
+Generates comprehensive visualization suite:
+- R² and M_p curves (averaged across iterations)
+- M_p inflection point detection
+- Second derivative (Δ₂) visualization
+- Criterion comparison (M_p vs AIC vs BIC)
+- Error distribution boxplots
+
+## Parallelization
+
+The framework supports two levels of parallelization:
+
+1. **Parallel iterations** (default): Multiple Monte Carlo runs execute simultaneously
+2. **Parallel subset evaluation**: Best subset search parallelized across model sizes
+
+To disable parallel iterations:
+```r
+run_scenario(scenario, N_iterations = 100, parallel_iterations = FALSE)
+```
 
 ## Known Limitations
 
-1. **Full enumeration infeasible for p_max > 20**
-   - Solution: Use `enumeration_strategy = "cardinality_limited"`
+1. **Computational complexity**: Full enumeration requires evaluating $2^p$ models
+   - Feasible for $p \leq 20$ (approximately 1 million models)
+   - For larger $p$, use alternative selection methods (forward/backward selection, LASSO)
 
-2. **M_p degeneracy in constant signal scenarios**
-   - Detected automatically with `is_degenerate` flag
+2. **M_p degeneracy**: When all predictors contribute equally, M_p curve may be flat
+   - Detected but requires manual inspection
+
+## Future Development
+
+Planned enhancements:
+- Greedy search algorithms for $p > 20$
+- Additional selection criteria (Cp, cross-validation)
+- Non-Gaussian error distributions
+- More complex correlation structures
 
 ## License
 
@@ -291,4 +285,4 @@ Created: November 2025
 
 ---
 
-For detailed usage instructions, examples, and troubleshooting, see [`USER_GUIDE.md`](USER_GUIDE.md).
+For detailed usage instructions, custom scenario creation, and advanced features, see [`USER_GUIDE.md`](USER_GUIDE.md).

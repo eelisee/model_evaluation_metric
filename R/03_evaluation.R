@@ -198,9 +198,10 @@ compute_summary_statistics <- function(all_iterations, all_r2_curves, p_true, al
 #' @param all_r2_curves List of R² curves from all iterations
 #' @param all_metric_results List of metric results from all iterations
 #' @param all_support_true List of support_true vectors from all iterations
+#' @param all_beta_true List of beta_true vectors from all iterations
 #' @return Data frame with columns: iteration, p, R2, M_p, AIC, BIC, selected_by_*, subsets, support_true
 #' @export
-create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_results, all_support_true = NULL) {
+create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_results, all_support_true = NULL, all_beta_true = NULL) {
   
   detailed_rows <- list()
   
@@ -228,12 +229,41 @@ create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_re
       NA
     }
     
+    # Order variables by absolute coefficient magnitude (for subset_p)
+    if (!is.null(all_beta_true)) {
+      beta_true <- all_beta_true[[iter]]
+      # Order by absolute value of coefficients (descending)
+      ordered_indices <- order(abs(beta_true), decreasing = TRUE)
+    } else {
+      ordered_indices <- NULL
+    }
+    
     # Create row for each p
     for (i in seq_along(r2_curve$p)) {
       p <- r2_curve$p[i]
       
-      # Get subset for this p from r2_curve
-      subset_p <- paste(r2_curve$subset[[i]], collapse = ",")
+      # Get subset for this p ordered by coefficient magnitude
+      if (!is.null(ordered_indices)) {
+        subset_p <- paste(ordered_indices[1:p], collapse = ",")
+      } else {
+        subset_p <- paste(r2_curve$subset[[i]], collapse = ",")
+      }
+      
+      # Get best subsets for each metric at this p
+      # For M_p: best R² subset (since M_p = R²/p, maximizing R² maximizes M_p for fixed p)
+      subset_mp_at_p <- r2_curve$subset[[i]]
+      
+      # For AIC: best AIC subset at this p
+      subset_aic_at_p <- r2_curve$subset_AIC[[i]]
+      
+      # For BIC: best BIC subset at this p
+      subset_bic_at_p <- r2_curve$subset_BIC[[i]]
+      
+      # Keep subsets in natural order (as selected by the criterion)
+      # Don't reorder - the exhaustive search already gives them in a natural order
+      subset_mp_ordered <- subset_mp_at_p
+      subset_aic_ordered <- subset_aic_at_p
+      subset_bic_ordered <- subset_bic_at_p
       
       detailed_rows[[length(detailed_rows) + 1]] <- data.frame(
         iteration = iter,
@@ -246,9 +276,9 @@ create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_re
         selected_by_AIC = (p == p_star_aic),
         selected_by_BIC = (p == p_star_bic),
         subset_p = subset_p,
-        subset_Mp = if (p == p_star_mp) subset_mp else NA,
-        subset_AIC = if (p == p_star_aic) subset_aic else NA,
-        subset_BIC = if (p == p_star_bic) subset_bic else NA,
+        subset_Mp = paste(subset_mp_ordered, collapse = ","),
+        subset_AIC = paste(subset_aic_ordered, collapse = ","),
+        subset_BIC = paste(subset_bic_ordered, collapse = ","),
         support_true = support_true_str,
         stringsAsFactors = FALSE
       )

@@ -2,46 +2,46 @@
 
 ## Overview
 
-This is a comprehensive, modular framework for evaluating the **M_p** model selection metric:
+This framework provides a comprehensive empirical evaluation of the **M_p** model selection metric:
 
-$$M_p = \frac{R^2}{p}$$
+$$M_p = \frac{R^2_p}{p}$$
 
-The framework systematically tests M_p across 15 stress-test scenarios, compares multiple selection rules, and provides detailed performance metrics.
+The M_p criterion uses an **inflection point method** based on discrete second derivatives to identify optimal model complexity, balancing goodness-of-fit with parsimony.
 
 ## Quick Start
 
-### 1. Run a Quick Test
+### 1. Run a Single Scenario
 
 ```r
 # Source the main script
-source("run_experiments.R")
+source("run_experiment.R")
 
-# Run a quick test on baseline scenario
-result <- run_quick_test()
+# Get scenario definitions
+scenarios <- define_scenarios()
+
+# Run baseline scenario with 100 iterations
+result <- run_scenario(scenarios$A1, N_iterations = 100)
 ```
 
-### 2. Run Single Scenario
+### 2. Run All Scenarios
 
 ```r
-# Run the baseline scenario (S2)
-result <- run_single_scenario()
+# Source the main script
+source("run_experiment.R")
 
-# Check where results were saved
-print(result$exp_dir)
+# Run all 11 scenarios with 100 iterations each
+results <- run_all_scenarios(N_iterations = 100)
 ```
 
-### 3. Run Multiple Scenarios
+### 3. Check Results
 
 ```r
-# Run scenarios S1-S3 with 3 repetitions each
-results <- run_batch_scenarios(n_reps = 3)
-```
-
-### 4. Run All 15 Scenarios
-
-```r
-# Run complete test battery (5 reps per scenario = 75 experiments)
-results <- run_all_scenarios(n_reps = 5)
+# Results are saved to:
+# results/<scenario_name>/
+#   ├── summary.txt
+#   ├── summary_stats.csv
+#   ├── detailed_results.csv
+#   └── plots/
 ```
 
 ## Architecture
@@ -49,225 +49,301 @@ results <- run_all_scenarios(n_reps = 5)
 ### Module Structure
 
 ```
-R/
-├── data_generation.R      # Advanced data generation
-├── model_evaluation.R     # Model enumeration and evaluation
-├── selection_rules.R      # Multiple selection rules
-├── recovery_metrics.R     # Performance evaluation
-├── scenarios.R            # 15 scenario configurations
-├── io_utilities.R         # I/O and file management
-├── visualization.R        # Plotting functions
-└── experiment_runner.R    # Experiment orchestration
+metric/
+├── run_experiment.R           # Main experiment orchestration
+└── R/
+    ├── 01_data_generation.R   # Data generation module
+    ├── 02_metrics.R           # R² curve & M_p metric computation
+    ├── 03_evaluation.R        # Performance evaluation & statistics
+    └── 04_visualization.R     # Plotting functions
 ```
 
 ### Data Flow
 
 ```
-Config → Generate Data → Enumerate Models → Evaluate Models
-  ↓           ↓              ↓                   ↓
-Save     Save to RData   Model list         All metrics
-meta.json                                   (R², M_p, AIC, BIC)
-                              ↓                   ↓
-                        Apply Rules         Compute Recovery
-                                              (TP/FP/FN, F1)
-                              ↓                   ↓
-                        Save results       Generate plots
-                        to CSV             Save to plots/
-                              ↓
-                        Summary report
-                        summary.txt
+Scenario Config
+    ↓
+Generate Data (X, y, β_true)
+    ↓
+Compute R² Curve (exhaustive best subset search for each p)
+    ↓
+Apply Metrics (M_p, AIC, BIC)
+    ↓
+Evaluate Performance (MAE, Hit Rate, TP/FP/FN, F1, etc.)
+    ↓
+Aggregate Statistics (across iterations)
+    ↓
+Create Plots & Save Results
 ```
 
-## The 15 Scenarios
+## The 11 Scenarios
 
-| ID | Scenario | Description | Expected Behavior |
-|----|----------|-------------|-------------------|
-| S1 | Constant M_p | All M_p values identical | M_p should fail (degeneracy) |
-| S2 | Baseline | Standard conditions | Should recover true p* |
-| S3 | Random Order | Shuffled coefficients | Order-invariance test |
-| S4 | Heteroscedastic Predictors | Varying variances | Robustness to scale |
-| S5 | Non-zero Means | Shifted predictors | Centering test |
-| S6 | Collinearity | Correlated predictors | Instability expected |
-| S7 | Weak Signal | Low SNR | Under-selection risk |
-| S8 | High-Dimensional | p_max = 50, p_true = 5 | Computational stress |
-| S9 | Nonlinear | Squared terms | Model misspecification |
-| S10 | Interactions | X1*X2 terms | Feature engineering |
-| S11 | Redundant Variables | Duplicate predictors | Over-selection risk |
-| S12 | Measurement Error | Noisy predictors | Attenuation bias |
-| S13 | Non-Gaussian | Heavy-tailed errors | Distribution robustness |
-| S14 | Heteroscedastic Errors | Varying noise | Efficiency loss |
-| S15 | Group Sparsity | Correlated blocks | Group selection |
+The framework tests M_p across three scenario categories:
 
-## Selection Rule
-- **Method:** Detect largest drop in M_p curve
-- **Strength:** Robust to noise
-- **Weakness:** May over-select if no clear drop
+### A) Baseline Scenarios
 
-### Comparisons
-- **AIC:** Akaike Information Criterion
-- **BIC:** Bayesian Information Criterion  
-- **Adj R²:** Adjusted R-squared
+| Scenario | Description | Key Parameters |
+|----------|-------------|----------------|
+| **A1** | Baseline Uncorrelated | n=500, p=20, ρ=0, 3 active, strong signals |
+| **A2** | Single Predictor | n=500, p=20, ρ=0, 1 active, strong signal |
+| **A3** | Full Support | n=500, p=20, ρ=0, all 20 active, strong signals |
+
+### B) Structural Scenarios (Correlation)
+
+| Scenario | Description | Key Parameters |
+|----------|-------------|----------------|
+| **B1_weak** | Weak AR(1) Correlation | n=500, p=20, AR(1) ρ=0.5, 3 active |
+| **B1_strong** | Strong AR(1) Correlation | n=500, p=20, AR(1) ρ=0.8, 3 active |
+| **B2** | Compound Symmetry | n=500, p=20, exchangeable ρ=0.5, 3 active |
+| **B3** | Block Structure | n=500, p=20, block ρ=0.7 (groups of 5), 3 active |
+
+### C) Support Scenarios (Signal Strength)
+
+| Scenario | Description | Key Parameters |
+|----------|-------------|----------------|
+| **C1** | Weak Signals | n=500, p=20, ρ=0, 5 weak signals |
+| **C2** | Many Weak Signals | n=500, p=20, ρ=0, 10 weak signals |
+| **C3** | Mixed Signals | n=500, p=20, ρ=0, 8 mixed strength signals |
 
 ## Output Structure
 
-Each experiment creates a timestamped directory:
+Each scenario creates a dedicated directory:
 
 ```
-results/
-└── s2__baseline__2024-01-15_14-30-45/
-    ├── meta.json                    # Configuration metadata
-    ├── data.RData                   # Generated data (X, y, true_beta)
-    ├── models_full.csv              # All evaluated models
-    ├── best_models_by_p.csv         # Best model per complexity
-    ├── recovery_stats.csv           # TP/FP/FN/Precision/Recall/F1
-    ├── selection_comparison.csv     # All rules compared
-    ├── ranking_correlations.csv     # M_p vs R² correlation
-    ├── aggregate_by_p.csv           # Statistics by complexity
-    ├── summary.txt                  # Human-readable summary
-    ├── plots/
-    │   ├── mp_and_r2_curves.png
-    │   ├── mp_efficiency_curve.png
-    │   ├── r2_curve.png
-    │   ├── all_models_scatter.png
-    │   └── criterion_comparison.png
-    └── diagnostics/
+results/<scenario_name>/
+├── summary.txt                  # Human-readable summary
+├── summary_stats.csv            # Aggregated statistics
+├── detailed_results.csv         # Full iteration-level results
+└── plots/
+    ├── r2_and_mp_curves.png     # R² and M_p progression
+    ├── criterion_comparison.png # M_p vs AIC vs BIC
+    ├── mp_inflection.png        # Inflection point detection
+    ├── delta2_plot.png          # Second derivative visualization
+    └── boxplot_errors.png       # Error distribution
 ```
+
+### Key Output Files
+
+**summary.txt** contains:
+- Scenario configuration (n, p, correlation structure, support, signal strength)
+- Selection performance (MAE, Bias, Variance, Hit Rate)
+- Subset recovery metrics (mean TP, FP, FN, Precision, Recall, F1, Jaccard)
+- Classification breakdown (% correct, underfit, overfit)
+- Most frequent p* selections for each metric
+
+**summary_stats.csv** aggregates:
+- Selection accuracy per metric (M_p, AIC, BIC)
+- Mean performance metrics across all iterations
+- Average R², M_p values by model complexity
+
+**detailed_results.csv** includes:
+- `iteration`: Monte Carlo iteration number (1 to N)
+- `p`: Model complexity (1 to p_max)
+- `metric`: Selection criterion (M_p, AIC, BIC)
+- `subset_p`: True active variables ordered by |β| magnitude
+- `subset_Mp`: Variables in best M_p model at this complexity
+- `subset_AIC`: Variables in best AIC model at this complexity
+- `subset_BIC`: Variables in best BIC model at this complexity
+- All performance metrics for each iteration
 
 ## Key Metrics
 
-### Model Evaluation
-- **R²:** Coefficient of determination
-- **Adjusted R²:** Penalized for model complexity
-- **M_p:** Efficiency metric (R²/p)
-- **AIC:** Akaike Information Criterion
-- **BIC:** Bayesian Information Criterion
+### Selection Accuracy
+- **MAE** (Mean Absolute Error): Average |p* - p_true|
+- **Bias**: Average (p* - p_true)
+- **Variance**: Variance of p* across iterations
+- **Hit Rate**: Proportion of iterations where p* = p_true
 
-### Variable Selection Performance
-- **TP/FP/FN:** True/False Positives/Negatives
-- **Precision:** TP / (TP + FP)
-- **Recall:** TP / (TP + FN)
-- **F1 Score:** Harmonic mean of precision and recall
-- **Hamming Distance:** Number of variable mismatches
-- **Exact Match:** Boolean for perfect recovery
+### Subset Recovery
+- **TP** (True Positives): Correctly identified active variables
+- **FP** (False Positives): Incorrectly identified inactive variables
+- **FN** (False Negatives): Missed active variables
+- **Precision**: TP / (TP + FP)
+- **Recall**: TP / (TP + FN)
+- **F1 Score**: Harmonic mean of precision and recall
+- **Jaccard Index**: |intersection| / |union| of true and selected sets
 
-### Stability Analysis
-- **Selection Stability:** Consistency across repetitions
-- **Ranking Correlations:** Agreement between metrics
+### Classification
+- **Correct**: p* = p_true
+- **Underfit**: p* < p_true
+- **Overfit**: p* > p_true
 
 ## Advanced Usage
 
 ### Custom Scenario
 
 ```r
-# Create custom configuration
-custom_config <- list(
-  scenario_name = "my_scenario",
-  scenario_description = "Custom test case",
-  n = 200,                    # Sample size
-  p_max = 30,                 # Number of predictors
-  p_true = 5,                 # True active predictors
-  true_indices = 1:5,         # Which predictors are active
-  beta_true = c(2, -1.5, 1, -0.5, 0.8),  # True coefficients
-  sigma_eps = 1.0,            # Noise level
-  X_dist = "normal",          # Predictor distribution
-  correlation_structure = "identity",
-  rho = 0,
-  enumeration_strategy = "full",
-  seed = 999,
-  expected_behavior = "Should work well"
+# Define custom scenario
+custom_scenario <- list(
+  name = "Custom_Test",
+  description = "Custom scenario for specific testing",
+  n = 300,                      # Sample size
+  p = 15,                       # Number of predictors
+  sigma_structure = "ar1",      # "identity", "ar1", "compound", "block"
+  rho = 0.6,                    # Correlation parameter
+  support_spec = 5,             # Number of active variables (or "single"/"full")
+  signal_strength = "strong",   # "strong", "weak", "mixed"
+  sigma_eps = 0.3,              # Noise level
+  seed = 123                    # Random seed (optional)
 )
 
-# Run experiment
-result <- run_experiment(custom_config)
+# Run with custom iterations
+result <- run_scenario(custom_scenario, N_iterations = 50)
 ```
 
 ### Modify Existing Scenario
 
 ```r
 # Start with baseline
-config <- scenario_s2_baseline()
+scenarios <- define_scenarios()
+my_scenario <- scenarios$A1
 
 # Modify parameters
-config$n <- 500              # Increase sample size
-config$sigma_eps <- 0.5      # Reduce noise
-config$seed <- 456
+my_scenario$n <- 1000           # Increase sample size
+my_scenario$sigma_eps <- 0.1    # Reduce noise
+my_scenario$support_spec <- 5   # Change active variables
 
 # Run modified scenario
-result <- run_experiment(config)
+result <- run_scenario(my_scenario, N_iterations = 100)
 ```
 
-### Parameter Sweeps
+### Parallel vs Sequential Execution
 
 ```r
-# Sweep over SNR values
-snr_values <- c(0.5, 1.0, 2.0, 5.0)
-results <- list()
+# Default: Parallel execution across iterations (faster)
+result <- run_scenario(scenarios$A1, N_iterations = 100, 
+                       parallel_iterations = TRUE)
 
-for (snr in snr_values) {
-  config <- scenario_s2_baseline()
-  config$sigma_eps <- 1.0 / sqrt(snr)  # Adjust noise for desired SNR
-  config$scenario_name <- paste0("s2_snr_", snr)
-  
-  results[[as.character(snr)]] <- run_experiment(config, verbose = FALSE)
-}
-
-# Compare F1 scores
-f1_scores <- sapply(results, function(r) {
-  r$recovery[r$recovery$rule == "max_mp", "F1"]
-})
-
-plot(snr_values, f1_scores, type = "b",
-     xlab = "SNR", ylab = "F1 Score",
-     main = "M_p Performance vs SNR")
+# Sequential execution (useful for debugging)
+result <- run_scenario(scenarios$A1, N_iterations = 100, 
+                       parallel_iterations = FALSE)
 ```
 
-## Command-Line Usage
-
-```bash
-# Run single scenario
-Rscript run_experiments.R single
-
-# Run batch of 3 scenarios, 5 reps each
-Rscript run_experiments.R batch 5
-
-# Run all 15 scenarios, 10 reps each  
-Rscript run_experiments.R all 10
-
-# Quick test
-Rscript run_experiments.R test
-```
-
-## Loading Results
+### Custom Output Directory
 
 ```r
-# Load results from saved experiment
-exp_dir <- "results/s2__baseline__2024-01-15_14-30-45"
-saved_results <- load_experiment_results(exp_dir)
-
-# Access components
-print(saved_results$meta)           # Configuration
-print(saved_results$recovery)       # Recovery stats
-print(saved_results$models)         # All models
-
-# Re-generate plots
-plot_mp_curves(saved_results$models)
+# Specify custom output location
+result <- run_scenario(scenarios$A1, 
+                       N_iterations = 100,
+                       output_dir = "my_results")
 ```
+
+## Selection Methods
+
+### M_p Inflection Point Method
+
+The M_p metric uses discrete second derivatives:
+
+1. Compute M_p curve: $M_p = R^2_p / p$
+2. First difference: $\Delta_1(p) = M_{p+1} - M_p$
+3. Second difference: $\Delta_2(p) = \Delta_1(p+1) - \Delta_1(p)$
+4. Select: $p^* = \arg\min_p \Delta_2(p)$
+
+**Interpretation**: Identifies where M_p curve shows steepest decline (inflection point).
+
+### AIC and BIC
+
+For comparison, the framework also applies:
+- **AIC**: $\text{AIC}_p = n \log(\text{RSS}_p / n) + 2p$
+- **BIC**: $\text{BIC}_p = n \log(\text{RSS}_p / n) + p \log(n)$
+
+Both select $p^* = \arg\min_p \text{Criterion}_p$
+
+## Interpreting Results
+
+### summary.txt Example
+
+```
+SCENARIO: A1_Baseline_Uncorrelated
+Configuration:
+  Sample size (n):           500
+  Predictors (p):            20
+  Correlation structure:     identity
+  Support specification:     3
+  Signal strength:           strong
+
+SELECTION PERFORMANCE (N = 100 iterations)
+────────────────────────────────────────────
+Metric  MAE   Bias   Var   Hit Rate
+M_p     0.85  -0.23  1.12  0.52
+AIC     0.42   0.15  0.65  0.73
+BIC     0.28  -0.08  0.31  0.85
+
+SUBSET RECOVERY METRICS
+────────────────────────────────────────────
+Metric  Precision  Recall  F1     Jaccard
+M_p     0.82      0.76    0.79   0.65
+AIC     0.91      0.88    0.89   0.81
+BIC     0.95      0.92    0.93   0.88
+```
+
+**Interpretation**:
+- BIC has highest hit rate (85%) and best subset recovery (F1=0.93)
+- M_p shows more variability (Var=1.12) but still performs reasonably
+- All methods show slight negative bias (tend to underfit slightly)
+
+## Computational Considerations
+
+### Parallel Processing
+
+The framework uses two levels of parallelization:
+
+1. **Iteration-level** (default): Multiple Monte Carlo runs in parallel
+   - Controlled by `parallel_iterations` parameter
+   - Uses `parallel::mclapply()` on Mac/Linux
+
+2. **Subset-level**: Best subset search parallelized across model sizes
+   - Automatically used in `compute_r2_curve()`
+   - Adjustable via `n_cores` parameter
+
+### Runtime Estimates
+
+For p=20 predictors (1,048,576 total models):
+- **Single iteration**: ~5-10 seconds (with parallelization)
+- **100 iterations** (parallel): ~2-5 minutes
+- **All 11 scenarios** (100 iterations each): ~30-60 minutes
+
+### Memory Requirements
+
+- **p=20**: Moderate (~1-2 GB RAM)
+- **p=25**: High (~10-15 GB RAM) - not recommended
+- **p>25**: Not feasible with exhaustive search
+
 ## Troubleshooting
 
-### Error: "package 'jsonlite' not available"
-```r
-install.packages("jsonlite")
-```
+### Error: "Cannot allocate vector of size..."
+**Issue**: Insufficient memory for exhaustive search  
+**Solution**: Reduce p or increase system RAM
 
-### Error: "cannot open file 'R/xxx.R'"
-Make sure you're in the project root directory:
-```r
-setwd("/path/to/metric")
-source("run_experiments.R")
-```
+### Long execution time
+**Issue**: Exhaustive search is computationally intensive  
+**Solutions**:
+- Use fewer iterations for testing
+- Enable parallel processing (default)
+- Reduce p (number of predictors)
 
 ### Plots not generating
-Check if ggplot2 is installed (optional, falls back to base R):
-```r
-install.packages("ggplot2")
-```
+**Issue**: Directory permissions or graphics device error  
+**Solution**: Check write permissions in output directory
+
+### Different results across runs
+**Issue**: Random variation in data generation  
+**Solutions**:
+- Set `seed` parameter in scenario for reproducibility
+- Increase `N_iterations` for more stable estimates
+
+## Best Practices
+
+1. **Start small**: Test with N_iterations=10 before full run
+2. **Use parallelization**: Keep `parallel_iterations=TRUE` (default)
+3. **Organize output**: Use descriptive `output_dir` names
+4. **Document modifications**: Add notes to scenario descriptions
+5. **Check convergence**: Review variance in summary statistics
+
+## License
+
+MIT License
+
+## Author
+
+Created: November 2025
