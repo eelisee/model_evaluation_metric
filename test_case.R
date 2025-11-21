@@ -22,6 +22,7 @@ run_scenario_test <- function(scenario, N_iterations, output_dir) {
   
   all_iterations <- list()
   all_r2_curves <- list()
+  all_metric_results <- list()
   
   for (iter in 1:N_iterations) {
     cat(sprintf("  [%d/%d] Iteration %d...\n", iter, N_iterations, iter))
@@ -43,6 +44,7 @@ run_scenario_test <- function(scenario, N_iterations, output_dir) {
     
     all_iterations[[iter]] <- eval
     all_r2_curves[[iter]] <- r2_curve
+    all_metric_results[[iter]] <- metric_results
   }
   
   summary_stats <- compute_summary_statistics(all_iterations, all_r2_curves, data$p_true)
@@ -57,7 +59,12 @@ run_scenario_test <- function(scenario, N_iterations, output_dir) {
   
   write.csv(summary_stats, file.path(scenario_dir, "summary_stats.csv"), row.names = FALSE)
   
-  return(list(summary_stats = summary_stats, all_iterations = all_iterations))
+  # Save detailed results
+  detailed_results <- create_detailed_results(all_iterations, all_r2_curves, all_metric_results)
+  write.csv(detailed_results, file.path(scenario_dir, "detailed_results.csv"), row.names = FALSE)
+  
+  return(list(summary_stats = summary_stats, all_iterations = all_iterations, 
+              detailed_results = detailed_results))
 }
 
 cat("\n")

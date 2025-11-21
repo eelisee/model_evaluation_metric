@@ -98,17 +98,73 @@ compute_summary_statistics <- function(all_iterations, all_r2_curves, p_true) {
   
   # Compute all metric values
   M_p <- r2_curve$R2 / r2_curve$p
-  M_p_sqrt <- r2_curve$R2 / sqrt(r2_curve$p)
   
-  # Add columns for each p
+  # Add R² values for each p (same for all metrics)
+  for (p in r2_curve$p) {
+    idx <- which(r2_curve$p == p)
+    summary_df[, paste0("p", p, "_R2")] <- r2_curve$R2[idx]
+  }
+  
+  # Add metric-specific values for each p
   for (p in r2_curve$p) {
     idx <- which(r2_curve$p == p)
     
     summary_df[summary_df$metric == "M_p", paste0("p", p, "_value")] <- M_p[idx]
-    summary_df[summary_df$metric == "M_p_sqrt", paste0("p", p, "_value")] <- M_p_sqrt[idx]
     summary_df[summary_df$metric == "AIC", paste0("p", p, "_value")] <- r2_curve$AIC[idx]
     summary_df[summary_df$metric == "BIC", paste0("p", p, "_value")] <- r2_curve$BIC[idx]
   }
   
   return(summary_df)
 }
+
+
+#' Create Detailed Results Data Frame
+#'
+#' Exports all metric values for each iteration and each p.
+#' This allows flexible post-hoc analysis and custom plotting.
+#'
+#' @param all_iterations List of evaluation results
+#' @param all_r2_curves List of R² curves from all iterations
+#' @param all_metric_results List of metric results from all iterations
+#' @return Data frame with columns: iteration, p, R2, M_p, AIC, BIC, selected_by_Mp, selected_by_AIC, selected_by_BIC
+#' @export
+create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_results) {
+  
+  detailed_rows <- list()
+  
+  for (iter in seq_along(all_r2_curves)) {
+    
+    r2_curve <- all_r2_curves[[iter]]
+    metric_results <- all_metric_results[[iter]]
+    
+    # Compute M_p curve
+    M_p <- r2_curve$R2 / r2_curve$p
+    
+    # Get selected p* for each metric
+    p_star_mp <- metric_results$M_p$p_star
+    p_star_aic <- metric_results$AIC$p_star
+    p_star_bic <- metric_results$BIC$p_star
+    
+    # Create row for each p
+    for (i in seq_along(r2_curve$p)) {
+      p <- r2_curve$p[i]
+      
+      detailed_rows[[length(detailed_rows) + 1]] <- data.frame(
+        iteration = iter,
+        p = p,
+        R2 = r2_curve$R2[i],
+        M_p = M_p[i],
+        AIC = r2_curve$AIC[i],
+        BIC = r2_curve$BIC[i],
+        selected_by_Mp = (p == p_star_mp),
+        selected_by_AIC = (p == p_star_aic),
+        selected_by_BIC = (p == p_star_bic),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+  
+  detailed_df <- do.call(rbind, detailed_rows)
+  return(detailed_df)
+}
+

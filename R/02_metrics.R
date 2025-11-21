@@ -95,9 +95,13 @@ compute_r2_curve <- function(X, y, n_cores = NULL) {
 #' Finds p* via discrete second derivative of R² curve.
 #'
 #' Definition:
-#'   Δ₁(p) = R̃²(p+1) - R̃²(p)       # First difference
+#'   M(p) = R²(p) / p
+#'   Δ₁(p) = M(p+1) - M(p)         # First difference
 #'   Δ₂(p) = Δ₁(p+1) - Δ₁(p)       # Second difference
-#'   p* = argmax_p Δ₂(p)           # Maximum curvature
+#'   p* = argmin_p Δ₂(p)           # Minimum of second derivative
+#'
+#' Equivalent formulation:
+#'   p* = argmax_p [Δ₁(p-1) - Δ₁(p)]
 #'
 #' @param r2_curve Data frame from compute_r2_curve()
 #' @return List with p_star, subset, method, diagnostics
@@ -117,58 +121,34 @@ metric_mp <- function(r2_curve) {
     ))
   }
   
-  # First differences: Δ₁(p) = R²(p+1) - R²(p)
-  delta1 <- diff(R2_vals)
+  # Compute M_p curve: M(p) = R²(p) / p
+  M_p <- R2_vals / p_vals
+  
+  # First differences: Δ₁(p) = M(p+1) - M(p)
+  delta1 <- diff(M_p)
   
   # Second differences: Δ₂(p) = Δ₁(p+1) - Δ₁(p)
   delta2 <- diff(delta1)
   
-  # Find maximum |Δ₂| (inflection point / elbow)
-  # This is where marginal gains change most dramatically
-  max_idx <- which.min(delta2)
+  # Find minimum Δ₂ (inflection point)
+  # This is where M_p changes from concave to convex
+  min_idx <- which.min(delta2)
   
-  # The inflection point corresponds to p at position max_idx + 1
+  # The inflection point corresponds to p at position min_idx + 1
   # (since delta2 is doubly differenced)
-  p_star <- p_vals[max_idx + 1]
+  p_star <- p_vals[min_idx + 1]
   
-  subset <- r2_curve$subset[[max_idx + 1]]
+  subset <- r2_curve$subset[[min_idx + 1]]
   
   return(list(
     metric = "M_p",
     p_star = p_star,
     subset = subset,
+    M_p = M_p,
     delta1 = delta1,
     delta2 = delta2,
-    inflection_index = max_idx + 1,
-    method = "inflection_point"
-  ))
-}
-
-
-#' M_p Variant: With √p Penalty
-#'
-#' Modified metric: M̃_p = R²(p) / √p
-#' Select p* where M̃_p is maximized.
-#'
-#' @param r2_curve Data frame
-#' @return List with p_star, subset
-#' @export
-metric_mp_sqrt <- function(r2_curve) {
-  
-  # M̃_p = R² / √p
-  M_tilde <- r2_curve$R2 / sqrt(r2_curve$p)
-  
-  # Select p* = argmax M̃_p
-  max_idx <- which.max(M_tilde)
-  p_star <- r2_curve$p[max_idx]
-  subset <- r2_curve$subset[[max_idx]]
-  
-  return(list(
-    metric = "M_p_sqrt",
-    p_star = p_star,
-    subset = subset,
-    M_tilde = M_tilde,
-    method = "maximize_M_tilde"
+    inflection_index = min_idx + 1,
+    method = "inflection_point_of_Mp"
   ))
 }
 
@@ -226,7 +206,6 @@ apply_all_metrics <- function(r2_curve) {
   
   list(
     M_p = metric_mp(r2_curve),
-    M_p_sqrt = metric_mp_sqrt(r2_curve),
     AIC = metric_aic(r2_curve),
     BIC = metric_bic(r2_curve)
   )

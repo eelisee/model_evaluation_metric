@@ -167,6 +167,7 @@ run_scenario <- function(scenario, N_iterations = 5, output_dir = "results") {
   # Storage for all iterations
   all_iterations <- list()
   all_r2_curves <- list()
+  all_metric_results <- list()
   
   # Monte Carlo loop
   for (iter in 1:N_iterations) {
@@ -191,7 +192,6 @@ run_scenario <- function(scenario, N_iterations = 5, output_dir = "results") {
     metric_results <- apply_all_metrics(r2_curve)
     
     cat("      M_p:      p* = ", metric_results$M_p$p_star, "\n")
-    cat("      M_p_sqrt: p* = ", metric_results$M_p_sqrt$p_star, "\n")
     cat("      AIC:      p* = ", metric_results$AIC$p_star, "\n")
     cat("      BIC:      p* = ", metric_results$BIC$p_star, "\n")
     
@@ -202,6 +202,7 @@ run_scenario <- function(scenario, N_iterations = 5, output_dir = "results") {
     # Store
     all_iterations[[iter]] <- eval
     all_r2_curves[[iter]] <- r2_curve
+    all_metric_results[[iter]] <- metric_results
     
     cat("    ✓ Done\n\n")
   }
@@ -233,9 +234,16 @@ run_scenario <- function(scenario, N_iterations = 5, output_dir = "results") {
   write_summary(scenario, summary_stats, all_iterations, 
                 file.path(scenario_dir, "summary.txt"))
   
-  # Save CSV
+  # Save summary CSV
   write.csv(summary_stats, 
             file.path(scenario_dir, "summary_stats.csv"),
+            row.names = FALSE)
+  
+  # Save detailed results CSV (all iterations x all p x all metrics)
+  cat("  Saving detailed results...\n")
+  detailed_results <- create_detailed_results(all_iterations, all_r2_curves, all_metric_results)
+  write.csv(detailed_results,
+            file.path(scenario_dir, "detailed_results.csv"),
             row.names = FALSE)
   
   cat("\n✓ Scenario complete! Results saved to:", scenario_dir, "\n")
