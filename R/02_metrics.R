@@ -130,15 +130,15 @@ metric_mp <- function(r2_curve) {
   # Second differences: Δ₂(p) = Δ₁(p+1) - Δ₁(p)
   delta2 <- diff(delta1)
   
-  # Find minimum Δ₂ (inflection point)
-  # This is where M_p changes from concave to convex
-  min_idx <- which.min(delta2)
+  # Find maximum Δ₂ (inflection point)
+  # This is where M_p curve has its steepest negative change
+  max_idx <- which.max(delta2)
   
-  # The inflection point corresponds to p at position min_idx + 1
+  # The inflection point corresponds to p at position max_idx + 1
   # (since delta2 is doubly differenced)
-  p_star <- p_vals[min_idx + 1]
+  p_star <- p_vals[max_idx + 1]
   
-  subset <- r2_curve$subset[[min_idx + 1]]
+  subset <- r2_curve$subset[[max_idx + 1]]
   
   return(list(
     metric = "M_p",
@@ -147,7 +147,7 @@ metric_mp <- function(r2_curve) {
     M_p = M_p,
     delta1 = delta1,
     delta2 = delta2,
-    inflection_index = min_idx + 1,
+    inflection_index = max_idx + 1,
     method = "inflection_point_of_Mp"
   ))
 }

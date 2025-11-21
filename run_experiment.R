@@ -153,7 +153,7 @@ define_scenarios <- function() {
 #' @param output_dir String. Output directory
 #' @param parallel_iterations Logical. If TRUE, parallelize across iterations (default: TRUE)
 #' @export
-run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", parallel_iterations = TRUE) {
+run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", parallel_iterations = TRUE) {
   
   cat("\n")
   cat(paste(rep("=", 70), collapse = ""), "\n")
@@ -366,7 +366,7 @@ write_summary <- function(scenario, summary_stats, all_iterations, filename) {
 #' @param N_iterations Integer
 #' @param output_dir String
 #' @export
-run_all_scenarios <- function(N_iterations = 50, output_dir = "results") {
+run_all_scenarios <- function(N_iterations = 100, output_dir = "results") {
   
   scenarios <- define_scenarios()
   
