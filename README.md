@@ -82,6 +82,9 @@ result <- run_scenario(scenarios$A1, N_iterations = 100)
 ```
 
 ### Run All Scenarios
+```shell
+Rscript run_experiment.R --iterations=100 --n_cores=4
+```
 
 ```r
 source("run_experiment.R")

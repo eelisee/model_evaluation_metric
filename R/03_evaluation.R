@@ -213,14 +213,10 @@ create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_re
     # Compute M_p curve
     M_p <- r2_curve$R2 / r2_curve$p
     
-    # Get selected p* and subsets for each metric
+    # Get selected p* for each metric
     p_star_mp <- metric_results$M_p$p_star
     p_star_aic <- metric_results$AIC$p_star
     p_star_bic <- metric_results$BIC$p_star
-    
-    subset_mp <- paste(metric_results$M_p$subset, collapse = ",")
-    subset_aic <- paste(metric_results$AIC$subset, collapse = ",")
-    subset_bic <- paste(metric_results$BIC$subset, collapse = ",")
     
     # Get support_true for this iteration
     support_true_str <- if (!is.null(all_support_true)) {
@@ -249,21 +245,32 @@ create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_re
         subset_p <- paste(r2_curve$subset[[i]], collapse = ",")
       }
       
-      # Get best subsets for each metric at this p
-      # For M_p: best R² subset (since M_p = R²/p, maximizing R² maximizes M_p for fixed p)
-      subset_mp_at_p <- r2_curve$subset[[i]]
+      # Use GLOBAL final subsets from metric_results
+      # But show them progressively: for each p, show only the first p variables from the final subset
       
-      # For AIC: best AIC subset at this p
-      subset_aic_at_p <- r2_curve$subset_AIC[[i]]
+      # Get the first p variables from each final subset
+      final_subset_mp <- metric_results$M_p$subset
+      final_subset_aic <- metric_results$AIC$subset
+      final_subset_bic <- metric_results$BIC$subset
       
-      # For BIC: best BIC subset at this p
-      subset_bic_at_p <- r2_curve$subset_BIC[[i]]
+      # Truncate to first p variables (or full subset if p >= length)
+      subset_mp_at_p <- if (p <= length(final_subset_mp)) {
+        paste(final_subset_mp[1:p], collapse = ",")
+      } else {
+        paste(final_subset_mp, collapse = ",")
+      }
       
-      # Keep subsets in natural order (as selected by the criterion)
-      # Don't reorder - the exhaustive search already gives them in a natural order
-      subset_mp_ordered <- subset_mp_at_p
-      subset_aic_ordered <- subset_aic_at_p
-      subset_bic_ordered <- subset_bic_at_p
+      subset_aic_at_p <- if (p <= length(final_subset_aic)) {
+        paste(final_subset_aic[1:p], collapse = ",")
+      } else {
+        paste(final_subset_aic, collapse = ",")
+      }
+      
+      subset_bic_at_p <- if (p <= length(final_subset_bic)) {
+        paste(final_subset_bic[1:p], collapse = ",")
+      } else {
+        paste(final_subset_bic, collapse = ",")
+      }
       
       detailed_rows[[length(detailed_rows) + 1]] <- data.frame(
         iteration = iter,
@@ -276,9 +283,9 @@ create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_re
         selected_by_AIC = (p == p_star_aic),
         selected_by_BIC = (p == p_star_bic),
         subset_p = subset_p,
-        subset_Mp = paste(subset_mp_ordered, collapse = ","),
-        subset_AIC = paste(subset_aic_ordered, collapse = ","),
-        subset_BIC = paste(subset_bic_ordered, collapse = ","),
+        subset_Mp = subset_mp_at_p,      # First p variables from M_p's final subset
+        subset_AIC = subset_aic_at_p,    # First p variables from AIC's final subset
+        subset_BIC = subset_bic_at_p,    # First p variables from BIC's final subset
         support_true = support_true_str,
         stringsAsFactors = FALSE
       )

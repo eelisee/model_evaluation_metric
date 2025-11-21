@@ -75,13 +75,18 @@ compute_r2_curve <- function(X, y, n_cores = NULL) {
     AIC_vals <- sapply(subset_results, function(x) x$AIC)
     BIC_vals <- sapply(subset_results, function(x) x$BIC)
     
+    # Compute M_p values for all subsets at this p
+    M_p_vals <- R2_vals / p
+    
     best_R2_idx <- which.max(R2_vals)
     best_AIC_idx <- which.min(AIC_vals)
     best_BIC_idx <- which.min(BIC_vals)
+    best_Mp_idx <- which.max(M_p_vals)  # Best M_p subset at this p
     
     best_R2 <- subset_results[[best_R2_idx]]
     best_AIC <- subset_results[[best_AIC_idx]]
     best_BIC <- subset_results[[best_BIC_idx]]
+    best_Mp <- subset_results[[best_Mp_idx]]
     
     results[[p]] <- data.frame(
       p = p,
@@ -91,7 +96,8 @@ compute_r2_curve <- function(X, y, n_cores = NULL) {
       BIC = best_BIC$BIC,        # Use BIC from best BIC model
       subset = I(list(best_R2$subset)),
       subset_AIC = I(list(best_AIC$subset)),
-      subset_BIC = I(list(best_BIC$subset))
+      subset_BIC = I(list(best_BIC$subset)),
+      subset_Mp = I(list(best_Mp$subset))  # Best M_p subset at this p
     )
     
     # Only print confirmation for every 5th p
@@ -167,8 +173,8 @@ metric_mp <- function(r2_curve) {
   # p* is one step before the maximum (since delta2[i] represents change at i)
   p_star <- p_vals[argmax_delta2 - 1]
   
-  # Get corresponding subset (use index argmax_delta2 - 1)
-  subset <- r2_curve$subset[[argmax_delta2 - 1]]
+  # Get corresponding subset - use the M_p-optimal subset at this p*
+  subset <- r2_curve$subset_Mp[[argmax_delta2 - 1]]
   
   return(list(
     metric = "M_p",

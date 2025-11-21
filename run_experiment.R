@@ -448,25 +448,52 @@ run_all_scenarios <- function(N_iterations = 50, output_dir = "results", n_cores
 # MAIN EXECUTION
 # ============================================================================
 
-# Check if we're being sourced for testing (skip auto-execution)
-if (exists(".skip_auto_run") && .skip_auto_run) {
-  # Sourced for testing - don't auto-run
-  invisible(NULL)
+# Only auto-execute if script is run directly (not sourced)
+# Check: sys.calls() will be empty if run directly, non-empty if sourced
+if (length(sys.calls()) == 0) {
+  # Direct execution via: Rscript run_experiment.R [N_iterations] [n_cores]
+  args <- commandArgs(trailingOnly = TRUE)
+  
+  # Parse arguments
+  N <- 50  # default
+  cores <- NULL  # default (will use detectCores() - 1)
+  
+  if (length(args) > 0) {
+    # Check for named arguments (--iterations=X, --n_cores=Y)
+    for (arg in args) {
+      if (grepl("^--iterations=", arg)) {
+        N <- as.integer(sub("^--iterations=", "", arg))
+      } else if (grepl("^--n_cores=", arg)) {
+        cores <- as.integer(sub("^--n_cores=", "", arg))
+      } else if (!grepl("^--", arg)) {
+        # Positional argument (for backwards compatibility)
+        N <- as.integer(arg)
+      }
+    }
+  }
+  
+  cat("\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n")
+  cat("RUNNING ALL SCENARIOS\n")
+  cat(paste(rep("=", 70), collapse = ""), "\n")
+  cat(sprintf("Iterations per scenario: %d\n", N))
+  if (!is.null(cores)) {
+    cat(sprintf("Cores to use: %d\n", cores))
+  } else {
+    cat(sprintf("Cores to use: auto (detectCores() - 1)\n"))
+  }
+  cat("\n")
+  
+  run_all_scenarios(N_iterations = N, n_cores = cores)
+  
 } else if (interactive()) {
+  # Interactive mode (R console)
   cat("\nInteractive mode. To run experiments:\n\n")
   cat("  # Run single scenario\n")
   cat("  result <- run_scenario(define_scenarios()$A1, N_iterations = 10)\n\n")
   cat("  # Run all scenarios\n")
   cat("  results <- run_all_scenarios(N_iterations = 100)\n\n")
-} else {
-  # Command-line execution
-  args <- commandArgs(trailingOnly = TRUE)
-  
-  if (length(args) == 0) {
-    # Default: run all with 50 iterations
-    run_all_scenarios(N_iterations = 50)
-  } else {
-    N <- as.integer(args[1])
-    run_all_scenarios(N_iterations = N)
-  }
+  cat("  # With custom cores\n")
+  cat("  results <- run_all_scenarios(N_iterations = 100, n_cores = 4)\n\n")
 }
+# If sourced (via source() or Rscript -e "source(...)"), do nothing - let user call functions manually
