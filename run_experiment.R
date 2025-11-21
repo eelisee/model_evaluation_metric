@@ -152,8 +152,9 @@ define_scenarios <- function() {
 #' @param N_iterations Integer. Number of Monte Carlo iterations
 #' @param output_dir String. Output directory
 #' @param parallel_iterations Logical. If TRUE, parallelize across iterations (default: TRUE)
+#' @param n_cores Integer. Number of cores to use (default: detectCores() - 1)
 #' @export
-run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", parallel_iterations = TRUE) {
+run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", parallel_iterations = TRUE, n_cores = NULL) {
   
   cat("\n")
   cat(paste(rep("=", 70), collapse = ""), "\n")
@@ -177,7 +178,12 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
     
     # Parallel execution
     library(parallel)
-    n_cores <- min(N_iterations, detectCores() - 1)
+    if (is.null(n_cores)) {
+      n_cores <- min(N_iterations, detectCores() - 1)
+    } else {
+      n_cores <- min(N_iterations, n_cores)
+    }
+    cat(sprintf("  Using %d cores for parallel execution\n", n_cores))
     
     results <- mclapply(1:N_iterations, function(iter) {
       
@@ -188,7 +194,7 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
       data <- generate_data(scenario)
       
       # Compute R² curve (exhaustive search over all subsets)
-      r2_curve <- compute_r2_curve(data$X, data$y)
+      r2_curve <- compute_r2_curve(data$X, data$y, n_cores = n_cores)
       
       # Apply all metrics
       metric_results <- apply_all_metrics(r2_curve)
@@ -243,7 +249,7 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
       
       # Compute R² curve (exhaustive search over all subsets)
       cat("    → Computing R² curve...\n")
-      r2_curve <- compute_r2_curve(data$X, data$y)
+      r2_curve <- compute_r2_curve(data$X, data$y, n_cores = n_cores)
       
       # Apply all metrics
       cat("    → Applying metrics...\n")
@@ -402,8 +408,9 @@ write_summary <- function(scenario, summary_stats, all_iterations, filename, all
 #'
 #' @param N_iterations Integer
 #' @param output_dir String
+#' @param n_cores Integer. Number of cores to use (default: detectCores() - 1)
 #' @export
-run_all_scenarios <- function(N_iterations = 100, output_dir = "results") {
+run_all_scenarios <- function(N_iterations = 100, output_dir = "results", n_cores = NULL) {
   
   scenarios <- define_scenarios()
   
@@ -424,7 +431,8 @@ run_all_scenarios <- function(N_iterations = 100, output_dir = "results") {
     results[[i]] <- run_scenario(
       scenario = scenarios[[i]], 
       N_iterations = N_iterations,  # EXPLICITLY NAMED
-      output_dir = output_dir
+      output_dir = output_dir,
+      n_cores = n_cores
     )
   }
   
