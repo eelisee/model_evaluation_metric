@@ -9,7 +9,7 @@ source("R/03_evaluation.R")
 source("R/04_visualization.R")
 
 # Source write_summary function from run_experiment.R
-source("run_experiment.R")
+#source("run_experiment.R")
 
 # Manually define run_scenario function inline
 run_scenario_test <- function(scenario, N_iterations, output_dir) {
@@ -57,10 +57,6 @@ run_scenario_test <- function(scenario, N_iterations, output_dir) {
                    file.path(scenario_dir, "plots"))
   
   write.csv(summary_stats, file.path(scenario_dir, "summary_stats.csv"), row.names = FALSE)
-  
-  # Save summary.txt
-  write_summary(scenario, summary_stats, all_iterations,
-                file.path(scenario_dir, "summary.txt"))
   
   # Save detailed results
   detailed_results <- create_detailed_results(all_iterations, all_r2_curves, all_metric_results)

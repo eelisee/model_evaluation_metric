@@ -207,12 +207,12 @@ run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", pa
     }, mc.cores = n_cores)
     
     # Extract results
+    p_true <- results[[1]]$p_true
     for (iter in 1:N_iterations) {
       all_iterations[[iter]] <- results[[iter]]$eval
       all_r2_curves[[iter]] <- results[[iter]]$r2_curve
       all_metric_results[[iter]] <- results[[iter]]$metric_results
     }
-    data$p_true <- results[[1]]$p_true
     
     cat(sprintf("  ✓ Completed %d iterations (parallel)\n\n", N_iterations))
     
@@ -259,8 +259,15 @@ run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", pa
   
   cat("\n  Computing summary statistics...\n")
   
+  # Get p_true (either from parallel or sequential branch)
+  if (parallel_iterations && N_iterations > 1) {
+    # p_true already set in parallel branch
+  } else {
+    p_true <- data$p_true
+  }
+  
   # Compute summary statistics
-  summary_stats <- compute_summary_statistics(all_iterations, all_r2_curves, data$p_true)
+  summary_stats <- compute_summary_statistics(all_iterations, all_r2_curves, p_true)
   
   # Create plots (using all iterations for averaging)
   cat("  Creating plots...\n")
@@ -269,7 +276,7 @@ run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", pa
     all_r2_curves = all_r2_curves,
     all_metric_results = all_metric_results,
     summary_stats = summary_stats,
-    p_true = data$p_true,
+    p_true = p_true,
     output_dir = file.path(scenario_dir, "plots")
   )
   
@@ -404,14 +411,19 @@ if (interactive()) {
   cat("  # Run all scenarios\n")
   cat("  results <- run_all_scenarios(N_iterations = 100)\n\n")
 } else {
-  # Command-line execution
-  args <- commandArgs(trailingOnly = TRUE)
+  # Command-line execution (only when run as main script, not when sourced)
+  script_args <- commandArgs(trailingOnly = FALSE)
+  is_sourced <- any(grepl("--file=", script_args))
   
-  if (length(args) == 0) {
-    # Default: run all with 20 iterations
-    run_all_scenarios(N_iterations = 20)
-  } else {
-    N <- as.integer(args[1])
-    run_all_scenarios(N_iterations = N)
+  if (!is_sourced) {
+    args <- commandArgs(trailingOnly = TRUE)
+    
+    if (length(args) == 0) {
+      # Default: run all with 20 iterations
+      run_all_scenarios(N_iterations = 20)
+    } else {
+      N <- as.integer(args[1])
+      run_all_scenarios(N_iterations = N)
+    }
   }
 }
