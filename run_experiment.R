@@ -151,8 +151,9 @@ define_scenarios <- function() {
 #' @param scenario List. Scenario configuration
 #' @param N_iterations Integer. Number of Monte Carlo iterations
 #' @param output_dir String. Output directory
+#' @param parallel_iterations Logical. If TRUE, parallelize across iterations (default: TRUE)
 #' @export
-run_scenario <- function(scenario, N_iterations = 5, output_dir = "results") {
+run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", parallel_iterations = TRUE) {
   
   cat("\n")
   cat(paste(rep("=", 70), collapse = ""), "\n")
@@ -169,42 +170,91 @@ run_scenario <- function(scenario, N_iterations = 5, output_dir = "results") {
   all_r2_curves <- list()
   all_metric_results <- list()
   
-  # Monte Carlo loop
-  for (iter in 1:N_iterations) {
+  # Monte Carlo loop - can be parallelized
+  if (parallel_iterations && N_iterations > 1) {
     
-    cat(sprintf("  [%d/%d] Iteration %d...\n", iter, N_iterations, iter))
+    cat(sprintf("  Running %d iterations in parallel...\n", N_iterations))
     
-    # Set seed for reproducibility
-    scenario$seed <- 1000 + iter
+    # Parallel execution
+    library(parallel)
+    n_cores <- min(N_iterations, detectCores() - 1)
     
-    # Generate data
-    cat("    → Generating data...\n")
-    data <- generate_data(scenario)
-    cat(sprintf("      X: %d x %d, y: %d, true p: %d\n", 
-                nrow(data$X), ncol(data$X), length(data$y), data$p_true))
+    results <- mclapply(1:N_iterations, function(iter) {
+      
+      # Set seed for reproducibility
+      scenario$seed <- 1000 + iter
+      
+      # Generate data
+      data <- generate_data(scenario)
+      
+      # Compute R² curve (exhaustive search over all subsets)
+      r2_curve <- compute_r2_curve(data$X, data$y)
+      
+      # Apply all metrics
+      metric_results <- apply_all_metrics(r2_curve)
+      
+      # Evaluate
+      eval <- evaluate_iteration(metric_results, data$p_true)
+      eval$iteration <- iter
+      
+      list(
+        eval = eval,
+        r2_curve = r2_curve,
+        metric_results = metric_results,
+        p_true = data$p_true
+      )
+      
+    }, mc.cores = n_cores)
     
-    # Compute R² curve (exhaustive search over all subsets)
-    cat("    → Computing R² curve...\n")
-    r2_curve <- compute_r2_curve(data$X, data$y)
+    # Extract results
+    for (iter in 1:N_iterations) {
+      all_iterations[[iter]] <- results[[iter]]$eval
+      all_r2_curves[[iter]] <- results[[iter]]$r2_curve
+      all_metric_results[[iter]] <- results[[iter]]$metric_results
+    }
+    data$p_true <- results[[1]]$p_true
     
-    # Apply all metrics
-    cat("    → Applying metrics...\n")
-    metric_results <- apply_all_metrics(r2_curve)
+    cat(sprintf("  ✓ Completed %d iterations (parallel)\n\n", N_iterations))
     
-    cat("      M_p:      p* = ", metric_results$M_p$p_star, "\n")
-    cat("      AIC:      p* = ", metric_results$AIC$p_star, "\n")
-    cat("      BIC:      p* = ", metric_results$BIC$p_star, "\n")
+  } else {
     
-    # Evaluate
-    eval <- evaluate_iteration(metric_results, data$p_true)
-    eval$iteration <- iter
-    
-    # Store
-    all_iterations[[iter]] <- eval
-    all_r2_curves[[iter]] <- r2_curve
-    all_metric_results[[iter]] <- metric_results
-    
-    cat("    ✓ Done\n\n")
+    # Sequential execution (original code)
+    for (iter in 1:N_iterations) {
+      
+      cat(sprintf("  [%d/%d] Iteration %d...\n", iter, N_iterations, iter))
+      
+      # Set seed for reproducibility
+      scenario$seed <- 1000 + iter
+      
+      # Generate data
+      cat("    → Generating data...\n")
+      data <- generate_data(scenario)
+      cat(sprintf("      X: %d x %d, y: %d, true p: %d\n", 
+                  nrow(data$X), ncol(data$X), length(data$y), data$p_true))
+      
+      # Compute R² curve (exhaustive search over all subsets)
+      cat("    → Computing R² curve...\n")
+      r2_curve <- compute_r2_curve(data$X, data$y)
+      
+      # Apply all metrics
+      cat("    → Applying metrics...\n")
+      metric_results <- apply_all_metrics(r2_curve)
+      
+      cat("      M_p:      p* = ", metric_results$M_p$p_star, "\n")
+      cat("      AIC:      p* = ", metric_results$AIC$p_star, "\n")
+      cat("      BIC:      p* = ", metric_results$BIC$p_star, "\n")
+      
+      # Evaluate
+      eval <- evaluate_iteration(metric_results, data$p_true)
+      eval$iteration <- iter
+      
+      # Store
+      all_iterations[[iter]] <- eval
+      all_r2_curves[[iter]] <- r2_curve
+      all_metric_results[[iter]] <- metric_results
+      
+      cat("    ✓ Done\n\n")
+    }
   }
   
   cat("\n  Computing summary statistics...\n")
@@ -309,7 +359,7 @@ write_summary <- function(scenario, summary_stats, all_iterations, filename) {
 #' @param N_iterations Integer
 #' @param output_dir String
 #' @export
-run_all_scenarios <- function(N_iterations = 100, output_dir = "results") {
+run_all_scenarios <- function(N_iterations = 50, output_dir = "results") {
   
   scenarios <- define_scenarios()
   
@@ -358,8 +408,8 @@ if (interactive()) {
   args <- commandArgs(trailingOnly = TRUE)
   
   if (length(args) == 0) {
-    # Default: run all with 100 iterations
-    run_all_scenarios(N_iterations = 100)
+    # Default: run all with 20 iterations
+    run_all_scenarios(N_iterations = 20)
   } else {
     N <- as.integer(args[1])
     run_all_scenarios(N_iterations = N)
