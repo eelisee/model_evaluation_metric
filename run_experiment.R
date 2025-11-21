@@ -154,7 +154,7 @@ define_scenarios <- function() {
 #' @param parallel_iterations Logical. If TRUE, parallelize across iterations (default: TRUE)
 #' @param n_cores Integer. Number of cores to use (default: detectCores() - 1)
 #' @export
-run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", parallel_iterations = TRUE, n_cores = NULL) {
+run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", parallel_iterations = TRUE, n_cores = NULL) {
   
   cat("\n")
   cat(paste(rep("=", 70), collapse = ""), "\n")
@@ -194,7 +194,8 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
       data <- generate_data(scenario)
       
       # Compute R² curve (exhaustive search over all subsets)
-      r2_curve <- compute_r2_curve(data$X, data$y, n_cores = n_cores)
+      # Use only 1 core per iteration to avoid memory overhead when iterations are parallel
+      r2_curve <- compute_r2_curve(data$X, data$y, n_cores = 1)
       
       # Apply all metrics
       metric_results <- apply_all_metrics(r2_curve)
@@ -225,6 +226,9 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
       all_support_true[[iter]] <- results[[iter]]$support_true
       all_beta_true[[iter]] <- results[[iter]]$beta_true
     }
+    
+    # Force garbage collection to free memory
+    gc()
     
     cat(sprintf("  ✓ Completed %d iterations (parallel)\n\n", N_iterations))
     
@@ -269,6 +273,9 @@ run_scenario <- function(scenario, N_iterations = 100, output_dir = "results", p
       all_metric_results[[iter]] <- metric_results
       all_support_true[[iter]] <- data$support_true
       all_beta_true[[iter]] <- data$beta_true
+      
+      # Force garbage collection to free memory
+      if (iter %% 10 == 0) gc()
       
       cat("    ✓ Done\n\n")
     }
@@ -410,7 +417,7 @@ write_summary <- function(scenario, summary_stats, all_iterations, filename, all
 #' @param output_dir String
 #' @param n_cores Integer. Number of cores to use (default: detectCores() - 1)
 #' @export
-run_all_scenarios <- function(N_iterations = 100, output_dir = "results", n_cores = NULL) {
+run_all_scenarios <- function(N_iterations = 50, output_dir = "results", n_cores = NULL) {
   
   scenarios <- define_scenarios()
   
@@ -464,8 +471,8 @@ if (exists(".skip_auto_run") && .skip_auto_run) {
   args <- commandArgs(trailingOnly = TRUE)
   
   if (length(args) == 0) {
-    # Default: run all with 100 iterations
-    run_all_scenarios(N_iterations = 100)
+    # Default: run all with 50 iterations
+    run_all_scenarios(N_iterations = 50)
   } else {
     N <- as.integer(args[1])
     run_all_scenarios(N_iterations = N)
