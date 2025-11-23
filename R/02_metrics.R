@@ -134,7 +134,7 @@ metric_mp <- function(r2_curve) {
   p_vals <- r2_curve$p
   R2_vals <- r2_curve$R2
   
-  if (length(p_vals) < 3) {
+  if (length(p_vals) < 4) {
     # Not enough points
     return(list(
       metric = "M_p",
@@ -165,16 +165,25 @@ metric_mp <- function(r2_curve) {
   
   # Last point: u''(n) = u(n-1) - 2*u(n) (assuming u(n+1) = u(n))
   delta2[n_points] <- M_p[n_points - 1] - 2 * M_p[n_points]
+
+  # Third derivative
+  # u'''(p) = u''(p+1) - u''(p)
+  # Dies misst, wie schnell sich die Krümmung ändert
   
-  # Find inflection point as maximum of second derivative
+  delta3 <- numeric(n_points - 1)
+  for (i in 1:(n_points - 1)) {
+    delta3[i] <- delta2[i + 1] - delta2[i]
+  }
+  
+  # Find inflection point as minimum of third derivative (strongest negative gradient of curvature (second derivative decreasing most rapidly) )
   # This represents where the M_p curve transitions from concave to convex
-  argmax_delta2 <- which.max(delta2)
+  argmin_delta3 <- which.min(delta3)
   
-  # p* is one step before the maximum (since delta2[i] represents change at i)
-  p_star <- p_vals[argmax_delta2 - 1]
+  # p* is one step before the minimum (since delta3[i] represents change at i)
+  p_star <- p_vals[argmin_delta3]
   
   # Get corresponding subset - use the M_p-optimal subset at this p*
-  subset <- r2_curve$subset_Mp[[argmax_delta2 - 1]]
+  subset <- r2_curve$subset_Mp[[argmin_delta3]]
   
   return(list(
     metric = "M_p",
@@ -182,8 +191,8 @@ metric_mp <- function(r2_curve) {
     subset = subset,
     M_p = M_p,
     delta2 = delta2,
-    inflection_index = argmax_delta2,
-    method = "argmax_delta2_minus_1"
+    delta3 = delta3,
+    method = "argmin_delta3"
   ))
 }
 
