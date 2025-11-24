@@ -1,0 +1,176 @@
+# EXPLANATION OF DERIVATIVE FORMULATIONS IN THE GRAPHS
+# =====================================================
+
+## WHAT IS BEING COMPUTED:
+
+Each graph shows M_p = R²/p and its derivatives computed using different boundary conditions.
+There are 3 formulations tested, each shown in a separate row of plots.
+
+---
+
+## FORMULATION 1: "current_code" (ORANGE plots)
+### This is the BROKEN implementation currently in 02_metrics.R
+
+### First Derivative (Δ₁):
+# Interior points (p = 2, 3, ..., 19):
+delta1[i] <- (M_p[i+1] - M_p[i-1]) / 2    # Central difference
+
+# Left boundary (p = 1):
+delta1[1] <- M_p[2] - M_p[1]              # Forward difference
+
+# Right boundary (p = 20):
+delta1[20] <- M_p[20] - M_p[19]           # Backward difference
+
+### Second Derivative (Δ₂):
+# Interior points:
+delta2[i] <- M_p[i-1] - 2*M_p[i] + M_p[i+1]    # Standard central difference
+
+# Left boundary (p = 1):
+delta2[1] <- -2*M_p[1] + M_p[2]           # ASSUMES M_p[0] = 0 (problematic!)
+
+# Right boundary (p = 20):
+delta2[20] <- M_p[19] - 2*M_p[20]         # ASSUMES M_p[21] = M_p[20]
+
+### Third Derivative (Δ₃):
+# All points except last:
+delta3[i] <- delta2[i+1] - delta2[i]      # for i = 1 to 19
+
+# Last point:
+delta3[20] <- NA                          # No value (only 19 values total)
+
+### Selection:
+selected_p <- argmin(delta3)              # Find p where Δ₃ is minimum
+
+### PROBLEM:
+# The boundary condition delta2[20] creates a huge negative artifact
+# This makes delta3[19] very negative, so argmin often selects p=19 (wrong!)
+
+---
+
+## FORMULATION 2: "proper_boundaries" (GREEN plots)
+### Uses mathematically correct forward/backward differences at boundaries
+
+### First Derivative (Δ₁):
+# Same as current_code:
+delta1[1] <- M_p[2] - M_p[1]              # Forward difference
+delta1[i] <- (M_p[i+1] - M_p[i-1]) / 2    # Central difference (interior)
+delta1[20] <- M_p[20] - M_p[19]           # Backward difference
+
+### Second Derivative (Δ₂):
+# Interior points (same as before):
+delta2[i] <- M_p[i-1] - 2*M_p[i] + M_p[i+1]
+
+# Left boundary - derived from Δ₁:
+delta2[1] <- delta1[2] - delta1[1]        # Forward difference of delta1
+
+# Right boundary - derived from Δ₁:
+delta2[20] <- delta1[20] - delta1[19]     # Backward difference of delta1
+
+### Third Derivative (Δ₃):
+# Interior points:
+delta3[i] <- delta2[i+1] - delta2[i]      # for i = 2 to 19
+
+# Left boundary:
+delta3[1] <- delta2[2] - delta2[1]        # Forward difference
+
+# Right boundary:
+delta3[20] <- delta2[20] - delta2[19]     # Backward difference
+
+### Selection:
+selected_p <- argmin(delta3)              # Find p where Δ₃ is minimum
+
+### RESULT:
+# No more p=19 artifact, but argmin(Δ₃) now always selects p=2
+# This is because Δ₃ is most negative at p=2 for most scenarios
+
+---
+
+## FORMULATION 3: "proper_plus1" (PURPLE plots)
+### Same as proper_boundaries but with +1 correction
+
+### Derivatives:
+# Exactly the same as proper_boundaries formulation:
+delta1[1] <- M_p[2] - M_p[1]
+delta1[i] <- (M_p[i+1] - M_p[i-1]) / 2
+delta1[20] <- M_p[20] - M_p[19]
+
+delta2[1] <- delta1[2] - delta1[1]
+delta2[i] <- M_p[i-1] - 2*M_p[i] + M_p[i+1]
+delta2[20] <- delta1[20] - delta1[19]
+
+delta3[1] <- delta2[2] - delta2[1]
+delta3[i] <- delta2[i+1] - delta2[i]
+delta3[20] <- delta2[20] - delta2[19]
+
+### Selection (THE ONLY DIFFERENCE):
+argmin_idx <- argmin(delta3)
+selected_p <- argmin_idx + 1              # Add 1 to the index!
+
+# Special case: if argmin at boundary
+if (argmin_idx == 20) {
+  selected_p <- 20                        # Don't go beyond domain
+}
+
+### RESULT:
+# Achieves 50% success rate (5/10 scenarios)
+# Works for interior inflection points (A1, B1-B3)
+# Still fails at boundaries (A2=1, A3=20) and weak signals (C1-C3)
+
+---
+
+## HOW TO READ THE PLOTS:
+
+Each PDF has 3 rows × 4 columns = 12 plots:
+
+Row 1 (ORANGE - current_code):
+  [M_p curve] [Δ₁ plot] [Δ₂ plot] [Δ₃ plot]
+
+Row 2 (GREEN - proper_boundaries):
+  [M_p curve] [Δ₁ plot] [Δ₂ plot] [Δ₃ plot]
+
+Row 3 (PURPLE - proper_plus1):
+  [M_p curve] [Δ₁ plot] [Δ₂ plot] [Δ₃ plot]
+
+In each plot:
+- RED dashed line = true p* (from data generation)
+- COLORED dashed line = selected p by this formulation
+- Black dotted line (in derivative plots) = y=0 reference
+
+### Key observations in the plots:
+
+1. **M_p curve**: Always decreasing, starts high at p=1
+   - For A2: Very high at p=1 (0.95), drops sharply
+   - For A3: Lower at p=1 (0.12), gradual decline
+   - For A1/B/C: Moderate values, clear "elbow" shape
+
+2. **Δ₁ plot**: Always negative (M_p always decreasing)
+   - Steepest (most negative) at p=1-2
+   - Gradually approaches zero as p increases
+
+3. **Δ₂ plot**: Curvature of M_p
+   - Positive = concave down (decelerating decline)
+   - CURRENT_CODE: Large negative spike at p=1 (artifact from M_p[0]=0)
+   - PROPER: Smooth positive values, no artifacts
+
+4. **Δ₃ plot**: Rate of change of curvature
+   - Zero crossing = inflection point
+   - CURRENT_CODE: Huge negative spike at p=19 (artifact!)
+   - PROPER: Minimum typically at p=2
+   - PROPER+1: Selects p=3 (one position after minimum)
+
+### Why the +1 correction works for interior points:
+
+The inflection point (where curvature changes most rapidly) is BETWEEN
+the point where Δ₃ is minimum (p=2) and the next point (p=3).
+For interior inflection points, selecting p = argmin(Δ₃) + 1 captures
+the elbow more accurately than argmin(Δ₃) alone.
+
+### Why all formulations fail at boundaries (A2, A3):
+
+- A2 (p*=1): The optimum IS at the boundary. There's no inflection point
+  to detect - just a maximum at p=1 followed by steep decline.
+  
+- A3 (p*=20): The optimum IS at the right boundary. M_p decreases slowly
+  throughout, with no clear inflection point. We should use all 20 predictors.
+
+Neither case has an inflection point that Δ₃ can detect!

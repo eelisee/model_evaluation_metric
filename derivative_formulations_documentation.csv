@@ -1,0 +1,4 @@
+"Formulation","Delta1_Interior","Delta1_Left","Delta1_Right","Delta2_Interior","Delta2_Left","Delta2_Right","Delta3_Computation","Selection_Rule"
+"current_code","(M_p[i+1] - M_p[i-1]) / 2","M_p[2] - M_p[1]","M_p[n] - M_p[n-1]","M_p[i-1] - 2*M_p[i] + M_p[i+1]","-2*M_p[1] + M_p[2] (assumes M_p[0]=0)","M_p[n-1] - 2*M_p[n] (assumes M_p[n+1]=M_p[n])","delta2[i+1] - delta2[i] (length n-1, last value NA)","argmin(delta3)"
+"proper_boundaries","(M_p[i+1] - M_p[i-1]) / 2","M_p[2] - M_p[1]","M_p[n] - M_p[n-1]","M_p[i-1] - 2*M_p[i] + M_p[i+1]","delta1[2] - delta1[1]","delta1[n] - delta1[n-1]","delta2[i+1] - delta2[i] at interior; forward/backward at boundaries (length n)","argmin(delta3)"
+"proper_plus1","(M_p[i+1] - M_p[i-1]) / 2","M_p[2] - M_p[1]","M_p[n] - M_p[n-1]","M_p[i-1] - 2*M_p[i] + M_p[i+1]","delta1[2] - delta1[1]","delta1[n] - delta1[n-1]","Same as proper_boundaries","argmin(delta3) + 1"
