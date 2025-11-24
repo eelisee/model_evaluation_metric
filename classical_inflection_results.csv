@@ -1,0 +1,11 @@
+"scenario","p_true","p_classical","method_classical","p_argmin_delta3","p_argmin_delta3_plus1","correct_classical","correct_argmin","correct_argmin_plus1"
+"A1_Baseline_Uncorrelated",3,3,"inflection_detected",5,6,TRUE,FALSE,FALSE
+"A2_Single_Predictor",1,1,"no_inflection_convex",3,4,TRUE,FALSE,FALSE
+"A3_Full_Support",20,1,"no_inflection_convex",3,4,FALSE,FALSE,FALSE
+"B1_AR1_Weak",3,3,"inflection_detected",2,3,TRUE,FALSE,TRUE
+"B1_AR1_Strong",3,1,"no_inflection_convex",3,4,FALSE,TRUE,FALSE
+"B2_Compound_Symmetry",3,1,"no_inflection_convex",3,4,FALSE,TRUE,FALSE
+"B3_Block_Structure",3,1,"no_inflection_convex",3,4,FALSE,TRUE,FALSE
+"C1_Weak_Signals",5,1,"no_inflection_convex",3,4,FALSE,FALSE,FALSE
+"C2_Many_Weak_Signals",10,1,"no_inflection_convex",3,4,FALSE,FALSE,FALSE
+"C3_Mixed_Signals",8,3,"inflection_detected",5,6,FALSE,FALSE,FALSE
