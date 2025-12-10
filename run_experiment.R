@@ -153,13 +153,16 @@ define_scenarios <- function() {
 #' @param output_dir String. Output directory
 #' @param parallel_iterations Logical. If TRUE, parallelize across iterations (default: TRUE)
 #' @param n_cores Integer. Number of cores to use (default: detectCores() - 1)
+#' @param methods Character. Which M_p method to use: "derivative" (default), "sigmoid", or "all"
 #' @export
-run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", parallel_iterations = TRUE, n_cores = NULL) {
+run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", 
+                         parallel_iterations = TRUE, n_cores = NULL, methods = "derivative") {
   
   cat("\n")
   cat(paste(rep("=", 70), collapse = ""), "\n")
   cat("SCENARIO:", scenario$name, "\n")
   cat(scenario$description, "\n")
+  cat("Methods:", methods, "\n")
   cat(paste(rep("=", 70), collapse = ""), "\n\n")
   
   # Create output directory
@@ -198,7 +201,7 @@ run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", pa
       r2_curve <- compute_r2_curve(data$X, data$y, n_cores = 1)
       
       # Apply all metrics
-      metric_results <- apply_all_metrics(r2_curve)
+      metric_results <- apply_all_metrics(r2_curve, methods = methods)
       
       # Evaluate (with support_true for subset evaluation)
       eval <- evaluate_iteration(metric_results, data$p_true, data$support_true)
@@ -255,7 +258,7 @@ run_scenario <- function(scenario, N_iterations = 50, output_dir = "results", pa
       r2_curve <- compute_r2_curve(data$X, data$y, n_cores = n_cores)
       
       # Apply all metrics
-      metric_results <- apply_all_metrics(r2_curve)
+      metric_results <- apply_all_metrics(r2_curve, methods = methods)
       
       # Evaluate (with support_true for subset evaluation)
       eval <- evaluate_iteration(metric_results, data$p_true, data$support_true)
@@ -386,9 +389,32 @@ write_summary <- function(scenario, summary_stats, all_iterations, filename, all
       
       if (!is.null(delta2)) {
         cat("\n  Second Derivative (delta2) of M_p:\n")
-        p_vals <- 1:length(delta2)
+        p_vals <- seq_along(delta2)
         for (p in p_vals) {
           cat(sprintf("    p=%d: %+.6e\n", p, delta2[p]))
+        }
+      }
+    }
+    
+    # Add sigmoid parameters for sigmoid_mp metric
+    if (m == "sigmoid_mp" && !is.null(all_metric_results)) {
+      # Get parameters from first iteration
+      if (!is.null(all_metric_results[[1]]$sigmoid_mp)) {
+        sigmoid_result <- all_metric_results[[1]]$sigmoid_mp
+        
+        if (!is.null(sigmoid_result$params)) {
+          cat("\n  Sigmoid Fit Parameters (first iteration):\n")
+          params <- sigmoid_result$params
+          cat(sprintf("    alpha (lower asymptote):  %+.6e\n", params["alpha"]))
+          cat(sprintf("    beta  (scale):            %+.6e\n", params["beta"]))
+          cat(sprintf("    gamma (steepness):        %+.6e\n", params["gamma"]))
+          cat(sprintf("    delta (inflection/p*):    %+.6f\n", params["delta"]))
+          if (!is.null(sigmoid_result$delta)) {
+            cat(sprintf("    delta (raw, unrounded):   %+.6f\n", sigmoid_result$delta))
+          }
+          cat(sprintf("    Fit method:               %s\n", sigmoid_result$method))
+        } else {
+          cat(sprintf("\n  Sigmoid Fit: %s\n", sigmoid_result$method))
         }
       }
     }
@@ -408,8 +434,9 @@ write_summary <- function(scenario, summary_stats, all_iterations, filename, all
 #' @param N_iterations Integer
 #' @param output_dir String
 #' @param n_cores Integer. Number of cores to use (default: detectCores() - 1)
+#' @param methods Character. Which M_p method to use: "derivative" (default), "sigmoid", or "all"
 #' @export
-run_all_scenarios <- function(N_iterations = 50, output_dir = "results", n_cores = NULL) {
+run_all_scenarios <- function(N_iterations = 50, output_dir = "results", n_cores = NULL, methods = "derivative") {
   
   scenarios <- define_scenarios()
   
@@ -420,6 +447,7 @@ run_all_scenarios <- function(N_iterations = 50, output_dir = "results", n_cores
   cat(sprintf("Total scenarios: %d\n", length(scenarios)))
   cat(sprintf("Iterations per scenario: %d\n", N_iterations))
   cat(sprintf("Output directory: %s\n", output_dir))
+  cat(sprintf("Methods: %s\n", methods))
   cat("\n")
   
   results <- list()
@@ -431,7 +459,8 @@ run_all_scenarios <- function(N_iterations = 50, output_dir = "results", n_cores
       scenario = scenarios[[i]], 
       N_iterations = N_iterations,  # EXPLICITLY NAMED
       output_dir = output_dir,
-      n_cores = n_cores
+      n_cores = n_cores,
+      methods = methods
     )
   }
   
@@ -457,14 +486,17 @@ if (length(sys.calls()) == 0) {
   # Parse arguments
   N <- 50  # default
   cores <- NULL  # default (will use detectCores() - 1)
+  methods <- "derivative"  # default
   
   if (length(args) > 0) {
-    # Check for named arguments (--iterations=X, --n_cores=Y)
+    # Check for named arguments (--iterations=X, --n_cores=Y, --methods=Z)
     for (arg in args) {
       if (grepl("^--iterations=", arg)) {
         N <- as.integer(sub("^--iterations=", "", arg))
       } else if (grepl("^--n_cores=", arg)) {
         cores <- as.integer(sub("^--n_cores=", "", arg))
+      } else if (grepl("^--methods=", arg)) {
+        methods <- sub("^--methods=", "", arg)
       } else if (!grepl("^--", arg)) {
         # Positional argument (for backwards compatibility)
         N <- as.integer(arg)
@@ -482,18 +514,23 @@ if (length(sys.calls()) == 0) {
   } else {
     cat(sprintf("Cores to use: auto (detectCores() - 1)\n"))
   }
+  cat(sprintf("Methods: %s\n", methods))
   cat("\n")
   
-  run_all_scenarios(N_iterations = N, n_cores = cores)
+  run_all_scenarios(N_iterations = N, n_cores = cores, methods = methods)
   
 } else if (interactive()) {
   # Interactive mode (R console)
   cat("\nInteractive mode. To run experiments:\n\n")
-  cat("  # Run single scenario\n")
+  cat("  # Run single scenario (derivative method - default)\n")
   cat("  result <- run_scenario(define_scenarios()$A1, N_iterations = 10)\n\n")
-  cat("  # Run all scenarios\n")
+  cat("  # Run single scenario (sigmoid method)\n")
+  cat("  result <- run_scenario(define_scenarios()$A1, N_iterations = 10, methods = \"sigmoid\")\n\n")
+  cat("  # Run all scenarios (derivative method)\n")
   cat("  results <- run_all_scenarios(N_iterations = 100)\n\n")
+  cat("  # Run all scenarios (sigmoid method)\n")
+  cat("  results <- run_all_scenarios(N_iterations = 100, methods = \"sigmoid\")\n\n")
   cat("  # With custom cores\n")
-  cat("  results <- run_all_scenarios(N_iterations = 100, n_cores = 4)\n\n")
+  cat("  results <- run_all_scenarios(N_iterations = 100, n_cores = 4, methods = \"sigmoid\")\n\n")
 }
 # If sourced (via source() or Rscript -e "source(...)"), do nothing - let user call functions manually

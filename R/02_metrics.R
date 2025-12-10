@@ -241,16 +241,194 @@ metric_bic <- function(r2_curve) {
 }
 
 
+#' Sigmoid M_p: Inverted Sigmoid Fit Method
+#'
+#' Fits an inverted sigmoid function to the M_p curve:
+#'   f(p) = alpha + beta / (1 + exp(gamma * (p - delta)))
+#' 
+#' The parameter delta represents the horizontal position (inflection point)
+#' and is returned as p*.
+#'
+#' @param r2_curve Data frame from compute_r2_curve()
+#' @return List with p_star, subset, method, fitted parameters
+#' @export
+metric_sigmoid_mp <- function(r2_curve) {
+  
+  p_vals <- r2_curve$p
+  R2_vals <- r2_curve$R2
+  M_vals <- R2_vals / p_vals
+  
+  # Check if we have enough points
+  if (length(p_vals) < 4) {
+    return(list(
+      metric = "sigmoid_mp",
+      p_star = 1,
+      subset = r2_curve$subset[[1]],
+      method = "insufficient_points",
+      params = NULL,
+      fitted_curve = NULL
+    ))
+  }
+  
+  # Robust starting values
+  # For inverted sigmoid: f(p) = alpha + beta / (1 + exp(gamma * (p - delta)))
+  # alpha = lower asymptote (M_p at high p)
+  # alpha + beta = upper asymptote (M_p at low p)
+  # delta = inflection point
+  
+  alpha_start <- min(M_vals)
+  beta_start <- max(M_vals) - min(M_vals)
+  
+  # Estimate inflection point from steepest descent
+  # Find where the first derivative (approximated) is most negative
+  if (length(M_vals) >= 3) {
+    delta1 <- diff(M_vals)
+    min_idx <- which.min(delta1)
+    # Inflection should be around the steepest descent
+    delta_start <- p_vals[min_idx + 1]
+  } else {
+    delta_start <- median(p_vals)
+  }
+  
+  # Estimate gamma from slope at inflection
+  # At inflection: df/dp = -beta * gamma / 4
+  # Approximate slope: delta1[min_idx]
+  if (exists("min_idx") && min_idx <= length(delta1)) {
+    slope_approx <- delta1[min_idx]
+    gamma_start <- abs(4 * slope_approx / beta_start)
+    # Ensure reasonable bounds
+    gamma_start <- max(0.1, min(gamma_start, 5))
+  } else {
+    gamma_start <- 1
+  }
+  
+  # Try nls fit with algorithm="port" for bounded parameters
+  fit_success <- FALSE
+  fit <- NULL
+  
+  tryCatch({
+    fit <- nls(
+      M_vals ~ alpha + beta / (1 + exp(gamma * (p_vals - delta))),
+      start = list(
+        alpha = alpha_start,
+        beta = beta_start,
+        gamma = gamma_start,
+        delta = delta_start
+      ),
+      algorithm = "port",
+      lower = c(alpha = 0, beta = 0, gamma = 0.01, delta = min(p_vals)),
+      upper = c(alpha = max(M_vals), beta = 2 * beta_start, gamma = 10, delta = max(p_vals)),
+      control = nls.control(maxiter = 200, warnOnly = TRUE)
+    )
+    fit_success <- TRUE
+  }, error = function(e) {
+    # Fallback: try nlsLM if available
+    if (requireNamespace("minpack.lm", quietly = TRUE)) {
+      tryCatch({
+        fit <<- minpack.lm::nlsLM(
+          M_vals ~ alpha + beta / (1 + exp(gamma * (p_vals - delta))),
+          start = list(
+            alpha = alpha_start,
+            beta = beta_start,
+            gamma = gamma_start,
+            delta = delta_start
+          ),
+          lower = c(alpha = 0, beta = 0, gamma = 0.01, delta = min(p_vals)),
+          upper = c(alpha = max(M_vals), beta = 2 * beta_start, gamma = 10, delta = max(p_vals)),
+          control = minpack.lm::nls.lm.control(maxiter = 200)
+        )
+        fit_success <<- TRUE
+      }, error = function(e2) {
+        # Both methods failed
+      })
+    }
+  })
+  
+  # If fit failed, return p_star = 1
+  if (!fit_success || is.null(fit)) {
+    return(list(
+      metric = "sigmoid_mp",
+      p_star = 1,
+      subset = r2_curve$subset[[1]],
+      method = "fit_failed",
+      params = NULL,
+      fitted_curve = NULL
+    ))
+  }
+  
+  # Extract parameters
+  params <- coef(fit)
+  alpha <- params["alpha"]
+  beta <- params["beta"]
+  gamma <- params["gamma"]
+  delta <- params["delta"]
+  
+  # Handle inverted case (gamma < 0)
+  if (gamma < 0) {
+    beta <- -beta
+    gamma <- -gamma
+    params["beta"] <- beta
+    params["gamma"] <- gamma
+  }
+  
+  # Determine p_star
+  p_star <- round(delta)
+  p_star <- max(min(p_star, max(p_vals)), min(p_vals))  # clamp to domain
+  
+  # Get corresponding subset
+  subset <- r2_curve$subset_Mp[[p_star]]
+  
+  # Compute fitted curve for all p values
+  fitted_curve <- alpha + beta / (1 + exp(gamma * (p_vals - delta)))
+  
+  return(list(
+    metric = "sigmoid_mp",
+    p_star = p_star,
+    subset = subset,
+    method = "sigmoid_fit",
+    params = params,
+    fitted_curve = fitted_curve,
+    delta = delta  # raw delta value before rounding
+  ))
+}
+
+
 #' Apply All Metrics
 #'
 #' @param r2_curve Data frame
+#' @param methods Character vector. Which methods to apply. 
+#'   Options: "all", "derivative", "sigmoid", or specific names like c("M_p", "sigmoid_mp")
 #' @return List of metric results
 #' @export
-apply_all_metrics <- function(r2_curve) {
+apply_all_metrics <- function(r2_curve, methods = "all") {
   
-  list(
-    M_p = metric_mp(r2_curve),
-    AIC = metric_aic(r2_curve),
-    BIC = metric_bic(r2_curve)
-  )
+  # Normalize methods input
+  if (identical(methods, "all")) {
+    methods <- c("M_p", "AIC", "BIC")
+  } else if (identical(methods, "derivative")) {
+    methods <- c("M_p", "AIC", "BIC")
+  } else if (identical(methods, "sigmoid")) {
+    methods <- c("sigmoid_mp", "AIC", "BIC")
+  }
+  
+  # Build result list based on requested methods
+  results <- list()
+  
+  if ("M_p" %in% methods) {
+    results$M_p <- metric_mp(r2_curve)
+  }
+  
+  if ("sigmoid_mp" %in% methods) {
+    results$sigmoid_mp <- metric_sigmoid_mp(r2_curve)
+  }
+  
+  if ("AIC" %in% methods) {
+    results$AIC <- metric_aic(r2_curve)
+  }
+  
+  if ("BIC" %in% methods) {
+    results$BIC <- metric_bic(r2_curve)
+  }
+  
+  return(results)
 }
