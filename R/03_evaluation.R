@@ -214,7 +214,16 @@ create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_re
     M_p <- r2_curve$R2 / r2_curve$p
     
     # Get selected p* for each metric
-    p_star_mp <- metric_results$M_p$p_star
+    # Check which M_p variant was used (derivative or sigmoid)
+    mp_results <- if (!is.null(metric_results$M_p)) {
+      metric_results$M_p
+    } else if (!is.null(metric_results$sigmoid_mp)) {
+      metric_results$sigmoid_mp
+    } else {
+      NULL
+    }
+    
+    p_star_mp <- if (!is.null(mp_results)) mp_results$p_star else NA
     p_star_aic <- metric_results$AIC$p_star
     p_star_bic <- metric_results$BIC$p_star
     
@@ -249,15 +258,17 @@ create_detailed_results <- function(all_iterations, all_r2_curves, all_metric_re
       # But show them progressively: for each p, show only the first p variables from the final subset
       
       # Get the first p variables from each final subset
-      final_subset_mp <- metric_results$M_p$subset
+      final_subset_mp <- if (!is.null(mp_results)) mp_results$subset else NULL
       final_subset_aic <- metric_results$AIC$subset
       final_subset_bic <- metric_results$BIC$subset
       
       # Truncate to first p variables (or full subset if p >= length)
-      subset_mp_at_p <- if (p <= length(final_subset_mp)) {
+      subset_mp_at_p <- if (!is.null(final_subset_mp) && p <= length(final_subset_mp)) {
         paste(final_subset_mp[1:p], collapse = ",")
-      } else {
+      } else if (!is.null(final_subset_mp)) {
         paste(final_subset_mp, collapse = ",")
+      } else {
+        NA_character_
       }
       
       subset_aic_at_p <- if (p <= length(final_subset_aic)) {

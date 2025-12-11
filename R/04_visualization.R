@@ -26,8 +26,12 @@ plot_r2_and_mp_curves <- function(all_r2_curves, all_metric_results, p_true, fil
   # Compute average M_p curve
   M_p_avg <- R2_avg / p_vals
   
-  # Get most frequent p* selection (mode)
-  p_star_selections <- sapply(all_metric_results, function(res) res$M_p$p_star)
+  # Get most frequent p* selection (mode) - check for both M_p and sigmoid_mp
+  p_star_selections <- sapply(all_metric_results, function(res) {
+    if (!is.null(res$M_p)) res$M_p$p_star
+    else if (!is.null(res$sigmoid_mp)) res$sigmoid_mp$p_star
+    else NA
+  })
   p_star_mp <- as.numeric(names(sort(table(p_star_selections), decreasing = TRUE)[1]))
   
   png(filename, width = 10, height = 8, units = "in", res = 300)
@@ -99,8 +103,12 @@ plot_criterion_comparison <- function(all_r2_curves, all_metric_results, p_true,
   AIC_norm <- 1 - normalize(AIC_avg)
   BIC_norm <- 1 - normalize(BIC_avg)
   
-  # Get most frequent selections (mode)
-  p_star_mp <- as.numeric(names(sort(table(sapply(all_metric_results, function(res) res$M_p$p_star)), decreasing = TRUE)[1]))
+  # Get most frequent selections (mode) - check for both M_p and sigmoid_mp
+  p_star_mp <- as.numeric(names(sort(table(sapply(all_metric_results, function(res) {
+    if (!is.null(res$M_p)) res$M_p$p_star
+    else if (!is.null(res$sigmoid_mp)) res$sigmoid_mp$p_star
+    else NA
+  })), decreasing = TRUE)[1]))
   p_star_aic <- as.numeric(names(sort(table(sapply(all_metric_results, function(res) res$AIC$p_star)), decreasing = TRUE)[1]))
   p_star_bic <- as.numeric(names(sort(table(sapply(all_metric_results, function(res) res$BIC$p_star)), decreasing = TRUE)[1]))
   
@@ -357,6 +365,12 @@ plot_classification_breakdown <- function(summary_stats, filename) {
 #' @export
 plot_second_derivative <- function(all_r2_curves, all_metric_results, filename) {
   
+  # Check if delta2 exists (only for derivative method)
+  if (is.null(all_metric_results[[1]]$M_p$delta2)) {
+    # Skip plotting for sigmoid method
+    return(invisible(NULL))
+  }
+  
   # Average delta2 across all iterations
   first_delta2 <- all_metric_results[[1]]$M_p$delta2
   delta2_avg <- numeric(length(first_delta2))
@@ -392,6 +406,103 @@ plot_second_derivative <- function(all_r2_curves, all_metric_results, filename) 
   if (length(inflection_idx) > 0 && inflection_idx <= length(delta2_avg)) {
     abline(v = p_star_mp, lty = 2, col = "#E63946", lwd = 2)
   }
+  
+  dev.off()
+}
+
+
+#' Plot Power Law Fit to M_p
+#'
+#' Shows the M_p curve with power law fit: M_p = a*p^(-b) + c
+#' and selected p* values
+#'
+#' @param all_r2_curves List of R² curves from all iterations
+#' @param all_metric_results List of metric results from all iterations
+#' @param p_true Integer
+#' @param filename String
+#' @export
+plot_sigmoid_fit <- function(all_r2_curves, all_metric_results, p_true, filename) {
+  
+  # Average M_p across all iterations
+  p_vals <- all_r2_curves[[1]]$p
+  R2_avg <- numeric(length(p_vals))
+  
+  for (i in seq_along(p_vals)) {
+    R2_values <- sapply(all_r2_curves, function(curve) curve$R2[i])
+    R2_avg[i] <- mean(R2_values)
+  }
+  
+  M_p_avg <- R2_avg / p_vals
+  
+  # Fit sigmoid: M = alpha + beta / (1 + exp(gamma * (p - delta)))
+  alpha_start <- min(M_p_avg)
+  beta_start <- max(M_p_avg) - min(M_p_avg)
+  delta1 <- diff(M_p_avg)
+  steepest_idx <- which.min(delta1)
+  delta_start <- p_vals[steepest_idx + 1]
+  gamma_start <- if (delta_start < 5) 5.0 else 2.0
+  
+  sigmoid_fit <- try(nls(M_p_avg ~ alpha + beta / (1 + exp(gamma * (p_vals - delta))),
+                         start = list(alpha = alpha_start, beta = beta_start, 
+                                      gamma = gamma_start, delta = delta_start),
+                         algorithm = "port",
+                         lower = c(alpha = 0, beta = 0, gamma = 0.5, delta = -50),
+                         upper = c(alpha = max(M_p_avg), beta = 2 * beta_start, 
+                                   gamma = 50, delta = max(p_vals)),
+                         control = nls.control(maxiter = 200, warnOnly = TRUE)), silent = TRUE)
+  
+  sigmoid_fitted <- if (class(sigmoid_fit)[1] != "try-error") {
+    fitted(sigmoid_fit)
+  } else {
+    rep(NA, length(p_vals))
+  }
+  
+  # Get most frequent p* selection
+  p_star_selections <- sapply(all_metric_results, function(res) res$sigmoid_mp$p_star)
+  p_star_sigmoid <- as.numeric(names(sort(table(p_star_selections), decreasing = TRUE)[1]))
+  
+  png(filename, width = 10, height = 6, units = "in", res = 300)
+  par(mar = c(4, 4.5, 3, 2))
+  
+  # Plot M_p curve
+  plot(p_vals, M_p_avg, type = "p", pch = 19, col = "#2E86AB", cex = 1.2,
+       xlab = "Number of Predictors (p)", 
+       ylab = expression(M[p] == R^2 / p),
+       main = "Sigmoid Fit to M_p (Averaged Across Iterations)",
+       xaxt = "n", cex.lab = 1.2, cex.main = 1.3,
+       ylim = range(c(M_p_avg, sigmoid_fitted), na.rm = TRUE))
+  axis(1, at = p_vals)
+  grid(col = "gray90", lty = 3)
+  
+  # Add sigmoid fitted curve
+  if (!all(is.na(sigmoid_fitted))) {
+    lines(p_vals, sigmoid_fitted, col = "#9B59B6", lwd = 2.5, lty = 1)
+  }
+  
+  # Mark true p*
+  abline(v = p_true, lty = 1, col = "green3", lwd = 2)
+  
+  # Mark selected p* from sigmoid
+  abline(v = p_star_sigmoid, lty = 2, col = "#E63946", lwd = 2)
+  
+  # Legend
+  legend_items <- c("M_p data", "True p*", "Selected p*")
+  legend_cols <- c("#2E86AB", "green3", "#E63946")
+  legend_ltys <- c(NA, 1, 2)
+  legend_pchs <- c(19, NA, NA)
+  legend_lwds <- c(NA, 2, 2)
+  
+  if (!all(is.na(sigmoid_fitted))) {
+    legend_items <- c(legend_items, "Sigmoid fit")
+    legend_cols <- c(legend_cols, "#9B59B6")
+    legend_ltys <- c(legend_ltys, 1)
+    legend_pchs <- c(legend_pchs, NA)
+    legend_lwds <- c(legend_lwds, 2.5)
+  }
+  
+  legend("topright", legend = legend_items,
+         col = legend_cols, lty = legend_ltys, pch = legend_pchs, 
+         lwd = legend_lwds, cex = 1.0, bg = "white")
   
   dev.off()
 }
@@ -462,6 +573,14 @@ create_all_plots <- function(all_iterations, all_r2_curves, all_metric_results,
     summary_stats,
     file.path(output_dir, "10_subset_confusion_matrix.png")
   )
+  
+  # Plot power law fit (if sigmoid method was used)
+  if (!is.null(all_metric_results[[1]]$sigmoid_mp)) {
+    plot_sigmoid_fit(
+      all_r2_curves, all_metric_results, p_true,
+      file.path(output_dir, "11_power_law_fit.png")
+    )
+  }
   
   cat("  ✓ All plots saved to:", output_dir, "\n")
 }

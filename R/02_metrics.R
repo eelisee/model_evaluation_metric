@@ -241,13 +241,12 @@ metric_bic <- function(r2_curve) {
 }
 
 
-#' Sigmoid M_p: Inverted Sigmoid Fit Method
+#' Sigmoid M_p: Sigmoid Fit Method
 #'
-#' Fits an inverted sigmoid function to the M_p curve:
-#'   f(p) = alpha + beta / (1 + exp(gamma * (p - delta)))
+#' Fits a sigmoid function to the M_p curve:
+#'   M_p = α + β/(1 + exp(γ(p - δ)))
 #' 
-#' The parameter delta represents the horizontal position (inflection point)
-#' and is returned as p*.
+#' Finds p* where the decline is steepest (maximum absolute first derivative).
 #'
 #' @param r2_curve Data frame from compute_r2_curve()
 #' @return List with p_star, subset, method, fitted parameters
@@ -261,45 +260,38 @@ metric_sigmoid_mp <- function(r2_curve) {
   # Check if we have enough points
   if (length(p_vals) < 4) {
     return(list(
-      metric = "sigmoid_mp",
-      p_star = 1,
-      subset = r2_curve$subset[[1]],
+      metric = "powerlaw_mp",
+      p_star = p_vals[1],
+      subset = r2_curve$subset_Mp[[1]],
       method = "insufficient_points",
       params = NULL,
       fitted_curve = NULL
     ))
   }
   
-  # Robust starting values
-  # For inverted sigmoid: f(p) = alpha + beta / (1 + exp(gamma * (p - delta)))
+  # Fit sigmoid: M_p = alpha + beta / (1 + exp(gamma * (p - delta)))
   # alpha = lower asymptote (M_p at high p)
   # alpha + beta = upper asymptote (M_p at low p)
   # delta = inflection point
+  # gamma = steepness of transition
   
   alpha_start <- min(M_vals)
   beta_start <- max(M_vals) - min(M_vals)
   
-  # Estimate inflection point from steepest descent
-  # Find where the first derivative (approximated) is most negative
+  # Estimate inflection point: where decline is steepest
   if (length(M_vals) >= 3) {
     delta1 <- diff(M_vals)
-    min_idx <- which.min(delta1)
-    # Inflection should be around the steepest descent
-    delta_start <- p_vals[min_idx + 1]
+    steepest_idx <- which.min(delta1)
+    delta_start <- p_vals[steepest_idx + 1]
   } else {
     delta_start <- median(p_vals)
   }
   
-  # Estimate gamma from slope at inflection
-  # At inflection: df/dp = -beta * gamma / 4
-  # Approximate slope: delta1[min_idx]
-  if (exists("min_idx") && min_idx <= length(delta1)) {
-    slope_approx <- delta1[min_idx]
-    gamma_start <- abs(4 * slope_approx / beta_start)
-    # Ensure reasonable bounds
-    gamma_start <- max(0.1, min(gamma_start, 5))
+  # Estimate gamma from the steepness
+  if (delta_start < 5) {
+    gamma_start <- 5.0
   } else {
-    gamma_start <- 1
+    gamma_start <- 2.0
   }
   
   # Try nls fit with algorithm="port" for bounded parameters
@@ -316,8 +308,8 @@ metric_sigmoid_mp <- function(r2_curve) {
         delta = delta_start
       ),
       algorithm = "port",
-      lower = c(alpha = 0, beta = 0, gamma = 0.01, delta = min(p_vals)),
-      upper = c(alpha = max(M_vals), beta = 2 * beta_start, gamma = 10, delta = max(p_vals)),
+      lower = c(alpha = 0, beta = 0, gamma = 0.5, delta = -50),
+      upper = c(alpha = max(M_vals), beta = 2 * beta_start, gamma = 50, delta = max(p_vals)),
       control = nls.control(maxiter = 200, warnOnly = TRUE)
     )
     fit_success <- TRUE
@@ -333,8 +325,8 @@ metric_sigmoid_mp <- function(r2_curve) {
             gamma = gamma_start,
             delta = delta_start
           ),
-          lower = c(alpha = 0, beta = 0, gamma = 0.01, delta = min(p_vals)),
-          upper = c(alpha = max(M_vals), beta = 2 * beta_start, gamma = 10, delta = max(p_vals)),
+          lower = c(alpha = 0, beta = 0, gamma = 0.01, delta = -50),
+          upper = c(alpha = max(M_vals), beta = 2 * beta_start, gamma = 50, delta = max(p_vals)),
           control = minpack.lm::nls.lm.control(maxiter = 200)
         )
         fit_success <<- TRUE
@@ -344,12 +336,12 @@ metric_sigmoid_mp <- function(r2_curve) {
     }
   })
   
-  # If fit failed, return p_star = 1
+  # If fit failed, return p_star = first p value
   if (!fit_success || is.null(fit)) {
     return(list(
       metric = "sigmoid_mp",
-      p_star = 1,
-      subset = r2_curve$subset[[1]],
+      p_star = p_vals[1],
+      subset = r2_curve$subset_Mp[[1]],
       method = "fit_failed",
       params = NULL,
       fitted_curve = NULL
@@ -371,12 +363,17 @@ metric_sigmoid_mp <- function(r2_curve) {
     params["gamma"] <- gamma
   }
   
-  # Determine p_star
-  p_star <- round(delta)
-  p_star <- max(min(p_star, max(p_vals)), min(p_vals))  # clamp to domain
+  # KEY CHANGE: Find p* where FIRST derivative is most negative (steepest decline)
+  # f'(p) = -beta * gamma * exp(gamma*(p-delta)) / (1 + exp(gamma*(p-delta)))^2
+  exp_term <- exp(gamma * (p_vals - delta))
+  first_deriv <- -beta * gamma * exp_term / (1 + exp_term)^2
+  
+  # Find p where first derivative is most negative (steepest decline)
+  steepest_idx <- which.min(first_deriv)
+  p_star <- p_vals[steepest_idx]
   
   # Get corresponding subset
-  subset <- r2_curve$subset_Mp[[p_star]]
+  subset <- r2_curve$subset_Mp[[steepest_idx]]
   
   # Compute fitted curve for all p values
   fitted_curve <- alpha + beta / (1 + exp(gamma * (p_vals - delta)))
@@ -385,10 +382,10 @@ metric_sigmoid_mp <- function(r2_curve) {
     metric = "sigmoid_mp",
     p_star = p_star,
     subset = subset,
-    method = "sigmoid_fit",
+    method = "sigmoid_steepest_descent",
     params = params,
     fitted_curve = fitted_curve,
-    delta = delta  # raw delta value before rounding
+    delta = delta
   ))
 }
 

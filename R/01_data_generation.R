@@ -59,8 +59,15 @@ generate_sigma <- function(p, structure = "identity", rho = 0, block_size = 5) {
 #'   - "full": all variables active
 #'   - Integer: number of active variables
 #' @param signal_strength String. "strong", "weak", "mixed"
+#' @param Sigma Matrix. Covariance matrix (optional, for identifiability check)
+#' @param n Integer. Sample size (optional, for identifiability check)
+#' @param sigma_eps Numeric. Noise std dev (optional, for identifiability check)
+#' @param alpha Numeric. Significance level for detectability (default: 0.05)
+#' @param min_detectable_factor Numeric. Minimum factor above detection threshold (default: 1.5)
 #' @return Vector. β of length p
-generate_beta <- function(p, support_spec = 3, signal_strength = "strong") {
+generate_beta <- function(p, support_spec = 3, signal_strength = "strong",
+                          Sigma = NULL, n = NULL, sigma_eps = NULL,
+                          alpha = 0.05, min_detectable_factor = 1.5) {
   
   # Determine support size
   if (is.character(support_spec)) {
@@ -78,15 +85,53 @@ generate_beta <- function(p, support_spec = 3, signal_strength = "strong") {
   # Random support positions
   support <- sample(1:p, p_true, replace = FALSE)
   
-  # Generate coefficient values
+  # Compute minimum detectable signal if parameters provided
+  min_signal <- NULL
+  if (!is.null(Sigma) && !is.null(n) && !is.null(sigma_eps)) {
+    # Critical value for two-sided test at level alpha
+    z_alpha <- qnorm(1 - alpha/2)
+    
+    # Inverse of covariance matrix
+    Sigma_inv <- tryCatch({
+      solve(Sigma)
+    }, error = function(e) {
+      warning("Sigma is singular or near-singular. Using pseudo-inverse.")
+      MASS::ginv(Sigma)
+    })
+    
+    # Minimum detectable signal per coefficient (Eq. 4 from your note)
+    # |β_j| ≥ z_α × (σ/√n) × √(Σ^{-1})_jj
+    min_signal <- z_alpha * (sigma_eps / sqrt(n)) * sqrt(diag(Sigma_inv))
+    
+    # Apply safety factor
+    min_signal <- min_detectable_factor * min_signal
+  }
+  
+  # Generate coefficient values with detectability constraint
   if (signal_strength == "strong") {
     # Strong signals: uniform [0.5, 1.5] with random sign
     magnitudes <- runif(p_true, 0.5, 1.5)
+    
+    # Apply minimum signal constraint if available
+    if (!is.null(min_signal)) {
+      min_required <- min_signal[support]
+      magnitudes <- pmax(magnitudes, min_required)
+    }
+    
     values <- magnitudes * sample(c(-1, 1), p_true, replace = TRUE)
     
   } else if (signal_strength == "weak") {
     # Weak signals: N(0, 0.1²)
     values <- rnorm(p_true, 0, 0.1)
+    
+    # Apply minimum signal constraint if available
+    if (!is.null(min_signal)) {
+      min_required <- min_signal[support]
+      # For weak signals, ensure absolute value exceeds minimum
+      values <- ifelse(abs(values) < min_required, 
+                       sign(values) * min_required, 
+                       values)
+    }
     
   } else if (signal_strength == "mixed") {
     # Mixed: first 3 strong, rest weak
@@ -97,6 +142,26 @@ generate_beta <- function(p, support_spec = 3, signal_strength = "strong") {
     weak_vals <- rnorm(n_weak, 0, 0.1)
     
     values <- c(strong_vals, weak_vals)
+    
+    # Apply minimum signal constraint if available
+    if (!is.null(min_signal)) {
+      min_required <- min_signal[support]
+      
+      # Strong coefficients
+      if (n_strong > 0) {
+        values[1:n_strong] <- ifelse(abs(values[1:n_strong]) < min_required[1:n_strong],
+                                      sign(values[1:n_strong]) * min_required[1:n_strong],
+                                      values[1:n_strong])
+      }
+      
+      # Weak coefficients
+      if (n_weak > 0) {
+        idx_weak <- (n_strong + 1):p_true
+        values[idx_weak] <- ifelse(abs(values[idx_weak]) < min_required[idx_weak],
+                                    sign(values[idx_weak]) * min_required[idx_weak],
+                                    values[idx_weak])
+      }
+    }
     
   } else {
     stop("Unknown signal_strength: ", signal_strength)
@@ -162,10 +227,14 @@ generate_data <- function(scenario) {
   X <- generate_X(scenario$n, Sigma)
   
   # Generate β (support and values)
+  # Pass Sigma, n, sigma_eps for identifiability check
   beta_true <- generate_beta(
     p = scenario$p,
     support_spec = scenario$support_spec,
-    signal_strength = scenario$signal_strength
+    signal_strength = scenario$signal_strength,
+    Sigma = Sigma,
+    n = scenario$n,
+    sigma_eps = scenario$sigma_eps
   )
   
   # Generate noise ε ~ N(0, σ²)
