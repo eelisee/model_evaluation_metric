@@ -16,109 +16,109 @@ Configuration:
 
 Summary Statistics:
 ---------------------------------------------------------------------- 
-      metric MAE Bias Variance HitRate n_correct n_underfit n_overfit   Jaccard
-1 sigmoid_mp 1.0 -1.0      1.0     0.4         2          3         0 0.6666667
-2        AIC 1.6  1.6      2.3     0.2         1          0         4 0.7057143
-3        BIC 0.4  0.4      0.3     0.6         3          0         2 0.9000000
-  Precision    Recall        F1 avg_TP avg_FP avg_FN SubsetHitRate     p1_R2
-1 1.0000000 0.6666667 0.7600000      2    0.0      1           0.4 0.5567778
-2 0.7057143 1.0000000 0.8128571      3    1.6      0           0.2 0.5567778
-3 0.9000000 1.0000000 0.9428571      3    0.4      0           0.6 0.5567778
-      p2_R2     p3_R2     p4_R2     p5_R2     p6_R2     p7_R2    p8_R2
-1 0.8735905 0.9911308 0.9911873 0.9912102 0.9912296 0.9912444 0.991257
-2 0.8735905 0.9911308 0.9911873 0.9912102 0.9912296 0.9912444 0.991257
-3 0.8735905 0.9911308 0.9911873 0.9912102 0.9912296 0.9912444 0.991257
-      p9_R2    p10_R2    p11_R2   p12_R2    p13_R2   p14_R2    p15_R2    p16_R2
-1 0.9912647 0.9912741 0.9912817 0.991289 0.9912948 0.991299 0.9913023 0.9913051
-2 0.9912647 0.9912741 0.9912817 0.991289 0.9912948 0.991299 0.9913023 0.9913051
-3 0.9912647 0.9912741 0.9912817 0.991289 0.9912948 0.991299 0.9913023 0.9913051
-     p17_R2    p18_R2    p19_R2    p20_R2 p1_value  p2_value  p3_value
-1 0.9913062 0.9913066 0.9913069 0.9913073       NA        NA        NA
-2 0.9913062 0.9913066 0.9913069 0.9913073 360.3644 -264.9079 -1591.379
-3 0.9913062 0.9913066 0.9913069 0.9913073 364.5791 -256.4787 -1578.735
-   p4_value  p5_value  p6_value  p7_value  p8_value  p9_value p10_value
+      metric       MAE       Bias  Variance   HitRate n_correct n_underfit
+1 sigmoid_mp 2.0000000 -2.0000000 0.0000000 0.0000000         0          3
+2        AIC 2.0000000  2.0000000 3.0000000 0.0000000         0          0
+3        BIC 0.6666667  0.6666667 0.3333333 0.3333333         1          0
+  n_overfit   Jaccard Precision    Recall        F1 avg_TP    avg_FP avg_FN
+1         0 0.3333333 1.0000000 0.3333333 0.5000000      1 0.0000000      2
+2         3 0.6428571 0.6428571 1.0000000 0.7714286      3 2.0000000      0
+3         2 0.8333333 0.8333333 1.0000000 0.9047619      3 0.6666667      0
+  SubsetHitRate     p1_R2     p2_R2     p3_R2     p4_R2     p5_R2     p6_R2
+1     0.0000000 0.5567778 0.8735905 0.9911308 0.9911873 0.9912102 0.9912296
+2     0.0000000 0.5567778 0.8735905 0.9911308 0.9911873 0.9912102 0.9912296
+3     0.3333333 0.5567778 0.8735905 0.9911308 0.9911873 0.9912102 0.9912296
+      p7_R2    p8_R2     p9_R2    p10_R2    p11_R2   p12_R2    p13_R2   p14_R2
+1 0.9912444 0.991257 0.9912647 0.9912741 0.9912817 0.991289 0.9912948 0.991299
+2 0.9912444 0.991257 0.9912647 0.9912741 0.9912817 0.991289 0.9912948 0.991299
+3 0.9912444 0.991257 0.9912647 0.9912741 0.9912817 0.991289 0.9912948 0.991299
+     p15_R2    p16_R2    p17_R2    p18_R2    p19_R2    p20_R2 p1_value
+1 0.9913023 0.9913051 0.9913062 0.9913066 0.9913069 0.9913073       NA
+2 0.9913023 0.9913051 0.9913062 0.9913066 0.9913069 0.9913073 360.3644
+3 0.9913023 0.9913051 0.9913062 0.9913066 0.9913069 0.9913073 364.5791
+   p2_value  p3_value  p4_value  p5_value  p6_value  p7_value  p8_value
 1        NA        NA        NA        NA        NA        NA        NA
-2 -1592.573 -1591.874 -1590.980 -1589.826 -1588.543 -1586.987 -1585.526
-3 -1575.714 -1570.801 -1565.692 -1560.324 -1554.826 -1549.056 -1543.380
-  p11_value p12_value p13_value p14_value p15_value p16_value p17_value
+2 -264.9079 -1591.379 -1592.573 -1591.874 -1590.980 -1589.826 -1588.543
+3 -256.4787 -1578.735 -1575.714 -1570.801 -1565.692 -1560.324 -1554.826
+   p9_value p10_value p11_value p12_value p13_value p14_value p15_value
 1        NA        NA        NA        NA        NA        NA        NA
-2 -1583.959 -1582.377 -1580.714 -1578.950 -1577.142 -1575.300 -1573.364
-3 -1537.598 -1531.802 -1525.924 -1519.946 -1513.923 -1507.867 -1501.716
-  p18_value p19_value p20_value
-1        NA        NA        NA
-2 -1571.391 -1569.409 -1567.427
-3 -1495.528 -1489.331 -1483.135
+2 -1586.987 -1585.526 -1583.959 -1582.377 -1580.714 -1578.950 -1577.142
+3 -1549.056 -1543.380 -1537.598 -1531.802 -1525.924 -1519.946 -1513.923
+  p16_value p17_value p18_value p19_value p20_value
+1        NA        NA        NA        NA        NA
+2 -1575.300 -1573.364 -1571.391 -1569.409 -1567.427
+3 -1507.867 -1501.716 -1495.528 -1489.331 -1483.135
 
 Interpretation:
 
 sigmoid_mp:
   Cardinality Metrics:
-    MAE:         1.000
-    Bias:        -1.000
-    Variance:    1.000
-    Hit Rate:    40.0%
-    Correct:     2
+    MAE:         2.000
+    Bias:        -2.000
+    Variance:    0.000
+    Hit Rate:    0.0%
+    Correct:     0
     Underfit:    3
     Overfit:     0
 
   Subset Selection Metrics:
-    Jaccard Index:      0.667
+    Jaccard Index:      0.333
     Precision:          1.000
-    Recall:             0.667
-    F1 Score:           0.760
-    Avg True Pos:       2.00
+    Recall:             0.333
+    F1 Score:           0.500
+    Avg True Pos:       1.00
     Avg False Pos:      0.00
-    Avg False Neg:      1.00
-    Subset Hit Rate:    40.0%
+    Avg False Neg:      2.00
+    Subset Hit Rate:    0.0%
 
   Sigmoid Fit Parameters (first iteration):
-    alpha (lower asymptote):  +7.147290e-02
-    beta  (scale):            +8.549443e-01
-    gamma (steepness):        +5.000000e-01
-    delta (inflection/p*):    +1.466533
-    delta (raw, unrounded):   +1.466533
+    alpha (lower asymptote):  +1.266323e-01
+    beta  (scale):            +5.217274e-01
+    gamma (steepness):        +7.460915e-01
+    delta (inflection/p*):    +1.008553
+    delta (raw, unrounded):   +1.008553
     Fit method:               sigmoid_steepest_descent
 
 AIC:
   Cardinality Metrics:
-    MAE:         1.600
-    Bias:        1.600
-    Variance:    2.300
-    Hit Rate:    20.0%
-    Correct:     1
+    MAE:         2.000
+    Bias:        2.000
+    Variance:    3.000
+    Hit Rate:    0.0%
+    Correct:     0
     Underfit:    0
-    Overfit:     4
+    Overfit:     3
 
   Subset Selection Metrics:
-    Jaccard Index:      0.706
-    Precision:          0.706
+    Jaccard Index:      0.643
+    Precision:          0.643
     Recall:             1.000
-    F1 Score:           0.813
+    F1 Score:           0.771
     Avg True Pos:       3.00
-    Avg False Pos:      1.60
+    Avg False Pos:      2.00
     Avg False Neg:      0.00
-    Subset Hit Rate:    20.0%
+    Subset Hit Rate:    0.0%
 
 BIC:
   Cardinality Metrics:
-    MAE:         0.400
-    Bias:        0.400
-    Variance:    0.300
-    Hit Rate:    60.0%
-    Correct:     3
+    MAE:         0.667
+    Bias:        0.667
+    Variance:    0.333
+    Hit Rate:    33.3%
+    Correct:     1
     Underfit:    0
     Overfit:     2
 
   Subset Selection Metrics:
-    Jaccard Index:      0.900
-    Precision:          0.900
+    Jaccard Index:      0.833
+    Precision:          0.833
     Recall:             1.000
-    F1 Score:           0.943
+    F1 Score:           0.905
     Avg True Pos:       3.00
-    Avg False Pos:      0.40
+    Avg False Pos:      0.67
     Avg False Neg:      0.00
-    Subset Hit Rate:    60.0%
+    Subset Hit Rate:    33.3%
 
 ====================================================================== 
-Timestamp: 2025-12-11 02:49:52 
+Timestamp: 2025-12-11 20:29:29 
 ====================================================================== 

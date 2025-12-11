@@ -249,9 +249,10 @@ metric_bic <- function(r2_curve) {
 #' Finds p* where the decline is steepest (maximum absolute first derivative).
 #'
 #' @param r2_curve Data frame from compute_r2_curve()
+#' @param use_3param Logical. If TRUE, use simplified 3-parameter sigmoid (no delta)
 #' @return List with p_star, subset, method, fitted parameters
 #' @export
-metric_sigmoid_mp <- function(r2_curve) {
+metric_sigmoid_mp <- function(r2_curve, use_3param = FALSE) {
   
   p_vals <- r2_curve$p
   R2_vals <- r2_curve$R2
@@ -278,11 +279,12 @@ metric_sigmoid_mp <- function(r2_curve) {
   alpha_start <- min(M_vals)
   beta_start <- max(M_vals) - min(M_vals)
   
-  # Estimate inflection point: where decline is steepest
+  # Estimate inflection point: p BEFORE the steepest decline
+  # (because after the steepest drop, adding more variables is not worthwhile)
   if (length(M_vals) >= 3) {
-    delta1 <- diff(M_vals)
-    steepest_idx <- which.min(delta1)
-    delta_start <- p_vals[steepest_idx + 1]
+    delta1 <- diff(M_vals)  # M_vals[i+1] - M_vals[i], length = length(M_vals)-1
+    steepest_idx <- which.min(delta1)  # Most negative = steepest decline
+    delta_start <- p_vals[steepest_idx]  # p BEFORE the steepest drop
   } else {
     delta_start <- median(p_vals)
   }
@@ -294,30 +296,130 @@ metric_sigmoid_mp <- function(r2_curve) {
     gamma_start <- 2.0
   }
   
-  # Try nls fit with algorithm="port" for bounded parameters
+  # Try multiple fitting strategies for robustness
   fit_success <- FALSE
   fit <- NULL
+  model_type <- "sigmoid_4param"
   
-  tryCatch({
-    fit <- nls(
-      M_vals ~ alpha + beta / (1 + exp(gamma * (p_vals - delta))),
-      start = list(
-        alpha = alpha_start,
-        beta = beta_start,
-        gamma = gamma_start,
-        delta = delta_start
-      ),
-      algorithm = "port",
-      lower = c(alpha = 0, beta = 0, gamma = 0.5, delta = -50),
-      upper = c(alpha = max(M_vals), beta = 2 * beta_start, gamma = 50, delta = max(p_vals)),
-      control = nls.control(maxiter = 200, warnOnly = TRUE)
-    )
-    fit_success <- TRUE
-  }, error = function(e) {
-    # Fallback: try nlsLM if available
-    if (requireNamespace("minpack.lm", quietly = TRUE)) {
-      tryCatch({
-        fit <<- minpack.lm::nlsLM(
+  # If 3-parameter model is requested, start with that
+  if (use_3param) {
+    tryCatch({
+      suppressWarnings({
+        fit <- nls(
+          M_vals ~ alpha + beta / (1 + exp(gamma * p_vals)),
+          start = list(
+            alpha = alpha_start,
+            beta = beta_start,
+            gamma = 0.5
+          ),
+          algorithm = "port",
+          lower = c(alpha = 0, beta = 0, gamma = 0.01),
+          upper = c(alpha = max(M_vals), beta = 3 * beta_start, gamma = 10),
+          control = nls.control(maxiter = 500, warnOnly = TRUE)
+        )
+      })
+      if (!is.null(fit) && !any(is.na(coef(fit)))) {
+        fit_success <- TRUE
+        model_type <- "sigmoid_3param"
+      }
+    }, error = function(e) {})
+  }
+  
+  # Strategy 1: Standard port algorithm with original bounds (4-parameter)
+  if (!fit_success && !use_3param) {
+    tryCatch({
+      suppressWarnings({
+        fit <- nls(
+          M_vals ~ alpha + beta / (1 + exp(gamma * (p_vals - delta))),
+          start = list(
+            alpha = alpha_start,
+            beta = beta_start,
+            gamma = gamma_start,
+            delta = delta_start
+          ),
+          algorithm = "port",
+          lower = c(alpha = 0, beta = 0, gamma = 0.005, delta = -max(p_vals)),
+          upper = c(
+            alpha = max(M_vals),
+            beta = 2 * beta_start,
+            gamma = 50,
+            delta = max(p_vals)
+          ),
+          control = nls.control(maxiter = 200, warnOnly = TRUE)
+        )
+      })
+      # Check if fit is reasonable
+      if (!is.null(fit) && !any(is.na(coef(fit)))) {
+        fit_success <- TRUE
+        model_type <- "sigmoid_4param"
+      }
+    }, error = function(e) {})
+  }
+  # Strategy 2: Try with relaxed bounds and different gamma
+  if (!fit_success) {
+    tryCatch({
+      gamma_alt <- if (gamma_start > 2) 1.0 else 5.0
+      suppressWarnings({
+        fit <- nls(
+          M_vals ~ alpha + beta / (1 + exp(gamma * (p_vals - delta))),
+          start = list(
+            alpha = alpha_start,
+            beta = beta_start,
+            gamma = gamma_alt,
+            delta = delta_start
+          ),
+          algorithm = "port",
+          lower = c(alpha = 0, beta = 0, gamma = 0.01, delta = -2 * max(p_vals)),
+          upper = c(
+            alpha = 2 * max(M_vals),
+            beta = 3 * beta_start,
+            gamma = 100,
+            delta = 2 * max(p_vals)
+          ),
+          control = nls.control(maxiter = 500, warnOnly = TRUE)
+        )
+      })
+      if (!is.null(fit) && !any(is.na(coef(fit)))) {
+        fit_success <- TRUE
+      }
+    }, error = function(e) {})
+  }
+  
+  # Strategy 3: Try with median delta as starting point
+  if (!fit_success) {
+    tryCatch({
+      delta_alt <- median(p_vals)
+      suppressWarnings({
+        fit <- nls(
+          M_vals ~ alpha + beta / (1 + exp(gamma * (p_vals - delta))),
+          start = list(
+            alpha = alpha_start,
+            beta = beta_start,
+            gamma = 2.0,
+            delta = delta_alt
+          ),
+          algorithm = "port",
+          lower = c(alpha = 0, beta = 0, gamma = 0.1, delta = min(p_vals)),
+          upper = c(
+            alpha = max(M_vals),
+            beta = 2 * beta_start,
+            gamma = 20,
+            delta = max(p_vals)
+          ),
+          control = nls.control(maxiter = 300, warnOnly = TRUE)
+        )
+      })
+      if (!is.null(fit) && !any(is.na(coef(fit)))) {
+        fit_success <- TRUE
+      }
+    }, error = function(e) {})
+  }
+  
+  # Strategy 4: Fallback to nlsLM (Levenberg-Marquardt)
+  if (!fit_success && requireNamespace("minpack.lm", quietly = TRUE)) {
+    tryCatch({
+      suppressWarnings({
+        fit <- minpack.lm::nlsLM(
           M_vals ~ alpha + beta / (1 + exp(gamma * (p_vals - delta))),
           start = list(
             alpha = alpha_start,
@@ -326,15 +428,93 @@ metric_sigmoid_mp <- function(r2_curve) {
             delta = delta_start
           ),
           lower = c(alpha = 0, beta = 0, gamma = 0.01, delta = -50),
-          upper = c(alpha = max(M_vals), beta = 2 * beta_start, gamma = 50, delta = max(p_vals)),
-          control = minpack.lm::nls.lm.control(maxiter = 200)
+          upper = c(alpha = 2 * max(M_vals), beta = 3 * beta_start, gamma = 50, delta = max(p_vals)),
+          control = minpack.lm::nls.lm.control(maxiter = 500)
         )
-        fit_success <<- TRUE
-      }, error = function(e2) {
-        # Both methods failed
       })
-    }
-  })
+      if (!is.null(fit) && !any(is.na(coef(fit)))) {
+        fit_success <- TRUE
+      }
+    }, error = function(e) {})
+  }
+  
+  # Strategy 5: Final attempt with nlsLM and very relaxed constraints
+  if (!fit_success && requireNamespace("minpack.lm", quietly = TRUE)) {
+    tryCatch({
+      suppressWarnings({
+        fit <- minpack.lm::nlsLM(
+          M_vals ~ alpha + beta / (1 + exp(gamma * (p_vals - delta))),
+          start = list(
+            alpha = min(M_vals) * 0.9,
+            beta = (max(M_vals) - min(M_vals)) * 1.1,
+            gamma = 1.0,
+            delta = mean(p_vals)
+          ),
+          lower = c(alpha = 0, beta = 0, gamma = 0.001, delta = -100),
+          upper = c(alpha = Inf, beta = Inf, gamma = 200, delta = 100),
+          control = minpack.lm::nls.lm.control(maxiter = 1000)
+        )
+      })
+      if (!is.null(fit) && !any(is.na(coef(fit)))) {
+        fit_success <- TRUE
+      }
+    }, error = function(e) {})
+  }
+  
+  # Strategy 6: Simplified sigmoid without delta parameter
+  # M_p = alpha + beta / (1 + exp(gamma * p))
+  # This has fewer parameters and may converge more easily
+  if (!fit_success) {
+    tryCatch({
+      suppressWarnings({
+        fit_simple <- nls(
+          M_vals ~ alpha + beta / (1 + exp(gamma * p_vals)),
+          start = list(
+            alpha = alpha_start,
+            beta = beta_start,
+            gamma = 0.5
+          ),
+          algorithm = "port",
+          lower = c(alpha = 0, beta = 0, gamma = 0.01),
+          upper = c(alpha = max(M_vals), beta = 3 * beta_start, gamma = 10),
+          control = nls.control(maxiter = 500, warnOnly = TRUE)
+        )
+      })
+      if (!is.null(fit_simple) && !any(is.na(coef(fit_simple)))) {
+        # Convert to 4-parameter form by setting delta = 0
+        params_simple <- coef(fit_simple)
+        fit <- fit_simple
+        # Add delta = 0 to the coefficients for consistency
+        fit$m$setPars(c(params_simple, delta = 0))
+        fit_success <- TRUE
+      }
+    }, error = function(e) {})
+  }
+  
+  # Strategy 7: Alternative - exponential decay model
+  # M_p = alpha + beta * exp(-gamma * p)
+  if (!fit_success) {
+    tryCatch({
+      suppressWarnings({
+        fit_exp <- nls(
+          M_vals ~ alpha + beta * exp(-gamma * p_vals),
+          start = list(
+            alpha = alpha_start,
+            beta = beta_start,
+            gamma = 0.5
+          ),
+          algorithm = "port",
+          lower = c(alpha = 0, beta = 0, gamma = 0.01),
+          upper = c(alpha = max(M_vals), beta = 3 * beta_start, gamma = 5),
+          control = nls.control(maxiter = 500, warnOnly = TRUE)
+        )
+      })
+      if (!is.null(fit_exp) && !any(is.na(coef(fit_exp)))) {
+        fit <- fit_exp
+        fit_success <- TRUE
+      }
+    }, error = function(e) {})
+  }
   
   # If fit failed, return p_star = first p value
   if (!fit_success || is.null(fit)) {
@@ -348,12 +528,31 @@ metric_sigmoid_mp <- function(r2_curve) {
     ))
   }
   
-  # Extract parameters
+  # Extract parameters and determine model type
   params <- coef(fit)
   alpha <- params["alpha"]
   beta <- params["beta"]
   gamma <- params["gamma"]
-  delta <- params["delta"]
+  
+  # Check which model was used - model_type was already set during fitting
+  if (!"delta" %in% names(params) && model_type == "sigmoid_4param") {
+    # Need to determine if it's exponential or simplified sigmoid
+    model_formula <- as.character(fit$m$formula()[[3]])
+    # Use any() to handle vector results from grepl
+    if (any(grepl("exp\\(-gamma", model_formula)) || any(grepl("exp\\(- ?gamma", model_formula))) {
+      model_type <- "exponential"
+      delta <- NA
+    } else {
+      model_type <- "sigmoid_3param"
+      delta <- 0  # Implicit inflection at p=0
+    }
+  } else if ("delta" %in% names(params)) {
+    delta <- params["delta"]
+    model_type <- "sigmoid_4param"
+  } else {
+    # Already set during fitting (use_3param=TRUE case)
+    delta <- if (model_type == "sigmoid_3param") 0 else NA
+  }
   
   # Handle inverted case (gamma < 0)
   if (gamma < 0) {
@@ -364,9 +563,24 @@ metric_sigmoid_mp <- function(r2_curve) {
   }
   
   # KEY CHANGE: Find p* where FIRST derivative is most negative (steepest decline)
-  # f'(p) = -beta * gamma * exp(gamma*(p-delta)) / (1 + exp(gamma*(p-delta)))^2
-  exp_term <- exp(gamma * (p_vals - delta))
-  first_deriv <- -beta * gamma * exp_term / (1 + exp_term)^2
+  # For 3-parameter sigmoid: f'(p) = -beta * gamma * exp(gamma*p) / (1 + exp(gamma*p))^2
+  # For 4-parameter sigmoid: f'(p) = -beta * gamma * exp(gamma*(p-delta)) / (1 + exp(gamma*(p-delta)))^2
+  if (model_type == "sigmoid_3param") {
+    exp_term <- exp(gamma * p_vals)
+    first_deriv <- -beta * gamma * exp_term / (1 + exp_term)^2
+    # Compute fitted curve
+    fitted_curve <- alpha + beta / (1 + exp(gamma * p_vals))
+  } else if (model_type == "exponential") {
+    # For exponential: f'(p) = -beta * gamma * exp(-gamma * p)
+    first_deriv <- -beta * gamma * exp(-gamma * p_vals)
+    # Compute fitted curve
+    fitted_curve <- alpha + beta * exp(-gamma * p_vals)
+  } else {
+    exp_term <- exp(gamma * (p_vals - delta))
+    first_deriv <- -beta * gamma * exp_term / (1 + exp_term)^2
+    # Compute fitted curve
+    fitted_curve <- alpha + beta / (1 + exp(gamma * (p_vals - delta)))
+  }
   
   # Find p where first derivative is most negative (steepest decline)
   steepest_idx <- which.min(first_deriv)
@@ -375,9 +589,6 @@ metric_sigmoid_mp <- function(r2_curve) {
   # Get corresponding subset
   subset <- r2_curve$subset_Mp[[steepest_idx]]
   
-  # Compute fitted curve for all p values
-  fitted_curve <- alpha + beta / (1 + exp(gamma * (p_vals - delta)))
-  
   return(list(
     metric = "sigmoid_mp",
     p_star = p_star,
@@ -385,7 +596,8 @@ metric_sigmoid_mp <- function(r2_curve) {
     method = "sigmoid_steepest_descent",
     params = params,
     fitted_curve = fitted_curve,
-    delta = delta
+    delta = delta,
+    model_type = model_type
   ))
 }
 

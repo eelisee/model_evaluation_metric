@@ -257,7 +257,6 @@ plot_p_star_scatter <- function(all_iterations, p_true, filename) {
 }
 
 
-
 #' Plot Error Distribution
 #'
 #' @param all_iterations List
@@ -508,6 +507,140 @@ plot_sigmoid_fit <- function(all_r2_curves, all_metric_results, p_true, filename
 }
 
 
+#' Plot Sigmoid Fit for Individual Iterations
+#'
+#' Creates one plot per iteration showing M_p data and fitted sigmoid curve
+#'
+#' @param all_r2_curves List of R² curves from all iterations
+#' @param all_metric_results List of metric results from all iterations
+#' @param p_true Integer. True p*
+#' @param output_dir String. Directory to save plots
+#' @export
+plot_sigmoid_iterations <- function(all_r2_curves, all_metric_results, p_true, output_dir) {
+  
+  # Create subdirectory
+  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+  
+  n_iterations <- length(all_r2_curves)
+  
+  for (iter in seq_len(n_iterations)) {
+    
+    # Get data for this iteration
+    r2_curve <- all_r2_curves[[iter]]
+    metric_result <- all_metric_results[[iter]]$sigmoid_mp
+    
+    if (is.null(metric_result)) next
+    
+    p_vals <- r2_curve$p
+    M_p_vals <- r2_curve$R2 / p_vals
+    
+    # Get fitted curve and parameters
+    fitted_curve <- metric_result$fitted_curve
+    p_star <- metric_result$p_star
+    
+    # Create plot
+    filename <- file.path(output_dir, sprintf("iteration_%02d_sigmoid_fit.png", iter))
+    png(filename, width = 10, height = 6, units = "in", res = 300)
+    par(mar = c(4, 4.5, 3, 2))
+    
+    # Determine y-axis limits
+    if (!is.null(fitted_curve)) {
+      ylim <- range(c(M_p_vals, fitted_curve), na.rm = TRUE)
+    } else {
+      ylim <- range(M_p_vals, na.rm = TRUE)
+    }
+    
+    # Plot M_p data points
+    plot(p_vals, M_p_vals, type = "p", pch = 19, col = "#2E86AB", cex = 1.2,
+         xlab = "Number of Predictors (p)", 
+         ylab = expression(M[p] == R^2 / p),
+         main = sprintf("Sigmoid Fit - Iteration %d", iter),
+         xaxt = "n", cex.lab = 1.2, cex.main = 1.3,
+         ylim = ylim)
+    axis(1, at = p_vals)
+    grid(col = "gray90", lty = 3)
+    
+    # Add fitted sigmoid curve
+    if (!is.null(fitted_curve) && !all(is.na(fitted_curve))) {
+      lines(p_vals, fitted_curve, col = "#9B59B6", lwd = 2.5, lty = 1)
+    }
+    
+    # Mark true p*
+    abline(v = p_true, lty = 1, col = "green3", lwd = 2)
+    
+    # Mark selected p*
+    abline(v = p_star, lty = 2, col = "#E63946", lwd = 2)
+    
+    # Add parameters as text (if available)
+    if (!is.null(metric_result$params)) {
+      params <- metric_result$params
+      model_type <- if (!is.null(metric_result$model_type)) metric_result$model_type else "sigmoid_4param"
+      
+      # Format based on model type (use ASCII to avoid encoding issues)
+      if (model_type == "exponential") {
+        param_text <- sprintf(
+          "Exponential\nalpha=%.3f\nbeta=%.3f\ngamma=%.2f\np*=%d",
+          params["alpha"], params["beta"], params["gamma"],
+          p_star
+        )
+      } else if (model_type == "sigmoid_3param") {
+        param_text <- sprintf(
+          "Sigmoid (3p)\nalpha=%.3f\nbeta=%.3f\ngamma=%.2f\np*=%d",
+          params["alpha"], params["beta"], params["gamma"],
+          p_star
+        )
+      } else if ("delta" %in% names(params)) {
+        param_text <- sprintf(
+          "Sigmoid (4p)\nalpha=%.3f\nbeta=%.3f\ngamma=%.2f\ndelta=%.2f\np*=%d",
+          params["alpha"], params["beta"], 
+          params["gamma"], params["delta"],
+          p_star
+        )
+      } else {
+        param_text <- sprintf(
+          "Model\nalpha=%.3f\nbeta=%.3f\ngamma=%.2f\np*=%d",
+          params["alpha"], params["beta"], params["gamma"],
+          p_star
+        )
+      }
+    }
+    
+    # Legend
+    legend_items <- c("M_p data", "True p*", "Selected p*")
+    legend_cols <- c("#2E86AB", "green3", "#E63946")
+    legend_ltys <- c(NA, 1, 2)
+    legend_pchs <- c(19, NA, NA)
+    legend_lwds <- c(NA, 2, 2)
+    
+    if (!is.null(fitted_curve) && !all(is.na(fitted_curve))) {
+      legend_items <- c(legend_items, "Sigmoid fit")
+      legend_cols <- c(legend_cols, "#9B59B6")
+      legend_ltys <- c(legend_ltys, 1)
+      legend_pchs <- c(legend_pchs, NA)
+      legend_lwds <- c(legend_lwds, 2.5)
+    }
+    
+    legend("topright", legend = legend_items,
+           col = legend_cols, lty = legend_ltys, pch = legend_pchs,
+           lwd = legend_lwds, cex = 0.9, bg = "white")
+    
+    # Add parameters below legend using plot coordinates
+    if (!is.null(metric_result$params)) {
+      usr <- par("usr")  # Get plot coordinates: c(x1, x2, y1, y2)
+      x_pos <- usr[2] - (usr[2] - usr[1]) * 0.01  # 1% from right edge
+      y_pos <- usr[4] - (usr[4] - usr[3]) * 0.35  # 35% down from top
+      text(x = x_pos, y = y_pos, 
+           labels = param_text, adj = 1, cex = 0.75, 
+           col = "black", family = "mono")
+    }
+    
+    dev.off()
+  }
+  
+  cat(sprintf("    ✓ Saved %d iteration plots to: %s\n", n_iterations, output_dir))
+}
+
+
 #' Create All Plots
 #'
 #' @param all_iterations List
@@ -579,6 +712,12 @@ create_all_plots <- function(all_iterations, all_r2_curves, all_metric_results,
     plot_sigmoid_fit(
       all_r2_curves, all_metric_results, p_true,
       file.path(output_dir, "11_power_law_fit.png")
+    )
+    
+    # Plot individual iterations in subdirectory
+    plot_sigmoid_iterations(
+      all_r2_curves, all_metric_results, p_true,
+      file.path(output_dir, "sigmoid_iterations")
     )
   }
   
