@@ -25,6 +25,7 @@ n <- 500              # Sample size
 p <- 10               # Number of predictors (reduced from 20)
 sigma_eps <- 0.2      # Noise standard deviation
 Sigma <- diag(p)      # Identity covariance matrix
+n_iterations <- 10    # Number of iterations with different seeds
 
 # Output directory
 output_dir <- "results/toy_examples"
@@ -72,7 +73,7 @@ scenarios <- list(
     p_true = 5
   ),
 
-    # Scenario 5: 7 very unequal signals
+  # Scenario 5: 7 very unequal signals
   S5 = list(
     name = "S5_Seven_Unequal",
     description = "7 very unequal coefficients",
@@ -81,7 +82,7 @@ scenarios <- list(
     p_true = 7
   ),
 
-    # Scenario 4: 10 very unequal signals
+  # Scenario 6: 10 very unequal signals
   S6 = list(
     name = "S6_Ten_Unequal",
     description = "10 very unequal coefficients",
@@ -90,7 +91,7 @@ scenarios <- list(
     p_true = 10
   ),
 
-    # Scenario 4: 10 very unequal signals
+  # Scenario 7: 10 equal signals
   S7 = list(
     name = "S7_Ten_equal",
     description = "10 very equal coefficients",
@@ -99,7 +100,7 @@ scenarios <- list(
     p_true = 10
   ),
 
-      # Scenario 4: 10 very unequal signals
+  # Scenario 8: 10 weirdly unequal signals
   S8 = list(
     name = "S8_Ten_Unequal_weird",
     description = "10 very weirdly unequal coefficients",
@@ -108,7 +109,7 @@ scenarios <- list(
     p_true = 10
   ),
 
-  # Scenario 4: 10 very unequal signals
+  # Scenario 9: 3 small support
   S9 = list(
     name = "S9_three_small_support",
     description = "3 small coefficients",
@@ -131,8 +132,14 @@ scenarios <- list(
 #' @param beta Vector. Fixed beta coefficients (length p)
 #' @param Sigma Matrix. Covariance matrix
 #' @param sigma_eps Numeric. Noise std dev
+#' @param seed Integer. Random seed for reproducibility
 #' @return List with X, y, beta, support
-generate_toy_data <- function(n, p, beta, Sigma, sigma_eps) {
+generate_toy_data <- function(n, p, beta, Sigma, sigma_eps, seed = NULL) {
+  
+  # Set seed if provided
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
   
   # Generate design matrix
   X <- mvrnorm(n = n, mu = rep(0, p), Sigma = Sigma)
@@ -156,15 +163,16 @@ generate_toy_data <- function(n, p, beta, Sigma, sigma_eps) {
 }
 
 
-#' Run Single Toy Scenario
+#' Run Single Toy Scenario with Multiple Iterations
 #'
 #' @param scenario List. Scenario configuration
 #' @param n Integer. Sample size
 #' @param p Integer. Total number of predictors
 #' @param Sigma Matrix. Covariance matrix
 #' @param sigma_eps Numeric. Noise std dev
-#' @return List with results
-run_toy_scenario <- function(scenario, n, p, Sigma, sigma_eps) {
+#' @param n_iterations Integer. Number of iterations with different seeds
+#' @return List with results from all iterations
+run_toy_scenario <- function(scenario, n, p, Sigma, sigma_eps, n_iterations = 10) {
   
   cat("\n")
   cat(paste(rep("=", 70), collapse = ""), "\n")
@@ -182,92 +190,314 @@ run_toy_scenario <- function(scenario, n, p, Sigma, sigma_eps) {
       cat(sprintf("  β_%d = %.2f  (support)\n", i, beta[i]))
     }
   }
-  cat("\n")
-  
-  # Generate data
-  data <- generate_toy_data(n, p, beta, Sigma, sigma_eps)
-  
-  # Compute R² curve
-  cat("Computing R² curve...\n")
-  r2_curve <- compute_r2_curve(data$X, data$y, n_cores = 1)
-  
-  # Apply sigmoid method with 4-parameter model (includes delta for flexibility)
-  cat("Applying sigmoid method (4-parameter)...\n")
-  result_sigmoid <- metric_sigmoid_mp(r2_curve, use_3param = FALSE)
-  
-  # Apply other metrics for comparison
-  result_aic <- metric_aic(r2_curve)
-  result_bic <- metric_bic(r2_curve)
-  
-  # Print results
-  cat("\n")
-  cat("RESULTS:\n")
-  cat(sprintf("  True p*:       %d\n", scenario$p_true))
-  cat(sprintf("  Sigmoid p*:    %d  (error: %+d)\n", 
-              result_sigmoid$p_star, result_sigmoid$p_star - scenario$p_true))
-  cat(sprintf("  AIC p*:        %d  (error: %+d)\n", 
-              result_aic$p_star, result_aic$p_star - scenario$p_true))
-  cat(sprintf("  BIC p*:        %d  (error: %+d)\n", 
-              result_bic$p_star, result_bic$p_star - scenario$p_true))
-  
-  if (!is.null(result_sigmoid$params)) {
-    cat("\n")
-    cat("Sigmoid parameters:\n")
-    cat(sprintf("  alpha (lower asymptote): %.4f\n", result_sigmoid$params["alpha"]))
-    cat(sprintf("  beta (scale):            %.4f\n", result_sigmoid$params["beta"]))
-    cat(sprintf("  gamma (steepness):       %.4f\n", result_sigmoid$params["gamma"]))
-    if ("delta" %in% names(result_sigmoid$params)) {
-      cat(sprintf("  delta (inflection):      %.4f\n", result_sigmoid$params["delta"]))
-    }
-  }
+  cat(sprintf("\nRunning %d iterations...\n\n", n_iterations))
   
   # Create output directory
   scenario_dir <- file.path(output_dir, scenario$name)
   dir.create(scenario_dir, showWarnings = FALSE, recursive = TRUE)
   
-  # Save R² and M_p values as CSV
-  cat("\nSaving R² and M_p data...\n")
-  r2_mp_data <- data.frame(
-    p = r2_curve$p,
-    R2 = r2_curve$R2,
-    M_p = r2_curve$R2 / r2_curve$p,
-    AIC = r2_curve$AIC,
-    BIC = r2_curve$BIC
-  )
-  csv_file <- file.path(scenario_dir, "r2_mp_curve.csv")
-  write.csv(r2_mp_data, csv_file, row.names = FALSE)
-  cat(sprintf("✓ Data saved to: %s\n", csv_file))
+  # Storage for all iterations
+  all_results <- list()
+  all_r2_mp_data <- list()
   
-  # Create plots
-  cat("\nCreating plots...\n")
+  # Run iterations
+  for (iter in 1:n_iterations) {
+    cat(sprintf("Iteration %d/%d...\n", iter, n_iterations))
+    
+    # Generate data with specific seed
+    seed <- 1000 + iter
+    data <- generate_toy_data(n, p, beta, Sigma, sigma_eps, seed = seed)
+    
+    # Compute R² curve
+    r2_curve <- compute_r2_curve(data$X, data$y, n_cores = 1)
+    
+    # Apply sigmoid method with 4-parameter model
+    result_sigmoid <- metric_sigmoid_mp(r2_curve, use_3param = FALSE)
+    
+    # Apply other metrics for comparison
+    result_aic <- metric_aic(r2_curve)
+    result_bic <- metric_bic(r2_curve)
+    
+    # Store results
+    all_results[[iter]] <- list(
+      iteration = iter,
+      seed = seed,
+      data = data,
+      r2_curve = r2_curve,
+      sigmoid = result_sigmoid,
+      aic = result_aic,
+      bic = result_bic
+    )
+    
+    # Store R² and M_p data with iteration ID
+    iter_data <- data.frame(
+      iteration = iter,
+      seed = seed,
+      p = r2_curve$p,
+      R2 = r2_curve$R2,
+      M_p = r2_curve$R2 / r2_curve$p,
+      AIC = r2_curve$AIC,
+      BIC = r2_curve$BIC,
+      p_star_sigmoid = result_sigmoid$p_star,
+      p_star_aic = result_aic$p_star,
+      p_star_bic = result_bic$p_star
+    )
+    
+    # Add sigmoid fitted values if available
+    if (!is.null(result_sigmoid$fitted_curve)) {
+      iter_data$M_p_fitted <- result_sigmoid$fitted_curve
+    }
+    
+    all_r2_mp_data[[iter]] <- iter_data
+    
+    cat(sprintf("  ✓ Sigmoid p*=%d, AIC p*=%d, BIC p*=%d\n", 
+                result_sigmoid$p_star, result_aic$p_star, result_bic$p_star))
+  }
   
-  # Plot 1: M_p curve with sigmoid fit
-  plot_toy_sigmoid(r2_curve, result_sigmoid, scenario$p_true, 
-                   file.path(scenario_dir, "01_sigmoid_fit.png"))
+  # Combine all data
+  combined_data <- do.call(rbind, all_r2_mp_data)
+  csv_file <- file.path(scenario_dir, "r2_mp_curve_all_iterations.csv")
+  write.csv(combined_data, csv_file, row.names = FALSE)
+  cat(sprintf("\n✓ Combined data saved to: %s\n", csv_file))
   
-  # Plot 2: R² curve
-  plot_toy_r2(r2_curve, scenario$p_true, result_sigmoid$p_star, 
-              file.path(scenario_dir, "02_r2_curve.png"))
+  # Print summary statistics
+  cat("\n")
+  cat("SUMMARY STATISTICS:\n")
+  cat(sprintf("  True p*:       %d\n", scenario$p_true))
   
-  # Plot 3: Criterion comparison
-  plot_toy_criteria(r2_curve, result_sigmoid$p_star, result_aic$p_star, 
-                    result_bic$p_star, scenario$p_true,
-                    file.path(scenario_dir, "03_criteria_comparison.png"))
+  sigmoid_p_stars <- sapply(all_results, function(r) r$sigmoid$p_star)
+  aic_p_stars <- sapply(all_results, function(r) r$aic$p_star)
+  bic_p_stars <- sapply(all_results, function(r) r$bic$p_star)
+  
+  cat(sprintf("  Sigmoid p*:    %.1f ± %.2f  (range: %d-%d)\n",
+              mean(sigmoid_p_stars), sd(sigmoid_p_stars),
+              min(sigmoid_p_stars), max(sigmoid_p_stars)))
+  cat(sprintf("  AIC p*:        %.1f ± %.2f  (range: %d-%d)\n",
+              mean(aic_p_stars), sd(aic_p_stars),
+              min(aic_p_stars), max(aic_p_stars)))
+  cat(sprintf("  BIC p*:        %.1f ± %.2f  (range: %d-%d)\n",
+              mean(bic_p_stars), sd(bic_p_stars),
+              min(bic_p_stars), max(bic_p_stars)))
+  
+  # Create plots with all iterations
+  cat("\nCreating aggregated plots...\n")
+  
+  # Plot 1: M_p curves with sigmoid fits (all iterations)
+  plot_toy_sigmoid_multi(all_results, scenario$p_true, 
+                         file.path(scenario_dir, "01_sigmoid_fit.png"))
+  
+  # Plot 2: R² curves (all iterations)
+  plot_toy_r2_multi(all_results, scenario$p_true, 
+                    file.path(scenario_dir, "02_r2_curve.png"))
+  
+  # Plot 3: Criterion comparison (all iterations)
+  plot_toy_criteria_multi(all_results, scenario$p_true,
+                          file.path(scenario_dir, "03_criteria_comparison.png"))
   
   cat(sprintf("✓ Plots saved to: %s\n", scenario_dir))
   
   return(list(
     scenario = scenario,
-    data = data,
-    r2_curve = r2_curve,
-    sigmoid = result_sigmoid,
-    aic = result_aic,
-    bic = result_bic
+    all_results = all_results,
+    combined_data = combined_data,
+    n_iterations = n_iterations
   ))
 }
 
 
-#' Plot Sigmoid Fit for Toy Example
+# ============================================================================
+# PLOTTING FUNCTIONS - MULTI-ITERATION VERSIONS
+# ============================================================================
+
+#' Plot Sigmoid Fit for Multiple Iterations
+plot_toy_sigmoid_multi <- function(all_results, p_true, filename) {
+  
+  n_iter <- length(all_results)
+  
+  # Define color palette for iterations
+  colors <- colorRampPalette(c("#2E86AB", "#A23B72", "#F18F01"))(n_iter)
+  
+  png(filename, width = 12, height = 7, units = "in", res = 300)
+  par(mar = c(4, 4.5, 3, 2))
+  
+  # Determine plot limits
+  all_M_p <- unlist(lapply(all_results, function(r) r$r2_curve$R2 / r$r2_curve$p))
+  all_fitted <- unlist(lapply(all_results, function(r) r$sigmoid$fitted_curve))
+  ylim <- range(c(all_M_p, all_fitted), na.rm = TRUE)
+  
+  # Get p values (should be same for all iterations)
+  p_vals <- all_results[[1]]$r2_curve$p
+  
+  # Initialize plot
+  plot(NULL, xlim = range(p_vals), ylim = ylim,
+       xlab = "Number of Predictors (p)", 
+       ylab = expression(M[p] == R^2 / p),
+       main = sprintf("Sigmoid Fit to M_p Curve (%d Iterations)", n_iter),
+       xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
+  axis(1, at = p_vals)
+  grid(col = "gray90", lty = 3)
+  
+  # Plot each iteration
+  for (i in 1:n_iter) {
+    r <- all_results[[i]]
+    M_p_vals <- r$r2_curve$R2 / r$r2_curve$p
+    fitted_curve <- r$sigmoid$fitted_curve
+    
+    # Plot data points
+    points(p_vals, M_p_vals, pch = 19, col = adjustcolor(colors[i], alpha.f = 0.6), cex = 1.0)
+    
+    # Plot fitted curve
+    if (!is.null(fitted_curve) && !all(is.na(fitted_curve))) {
+      lines(p_vals, fitted_curve, col = colors[i], lwd = 2, lty = 1)
+    }
+  }
+  
+  # Add true p* line
+  abline(v = p_true, lty = 1, col = "green3", lwd = 3)
+  
+  # Add legend
+  legend("topright", 
+         legend = c("M_p data", "Sigmoid fits", "True p*"),
+         col = c(colors[1], colors[1], "green3"),
+         lty = c(NA, 1, 1), pch = c(19, NA, NA),
+         lwd = c(NA, 2, 3), cex = 1.0, bg = "white")
+  
+  # Add text with p* distribution
+  p_stars <- sapply(all_results, function(r) r$sigmoid$p_star)
+  text_info <- sprintf("p* range: %d-%d\np* mean: %.1f", 
+                       min(p_stars), max(p_stars), mean(p_stars))
+  usr <- par("usr")
+  text(x = usr[2] - (usr[2] - usr[1]) * 0.01, 
+       y = usr[3] + (usr[4] - usr[3]) * 0.15,
+       labels = text_info, adj = 1, cex = 0.9, 
+       col = "black", family = "mono")
+  
+  dev.off()
+}
+
+
+#' Plot R² Curves for Multiple Iterations
+plot_toy_r2_multi <- function(all_results, p_true, filename) {
+  
+  n_iter <- length(all_results)
+  colors <- colorRampPalette(c("#2E86AB", "#A23B72", "#F18F01"))(n_iter)
+  
+  png(filename, width = 12, height = 7, units = "in", res = 300)
+  par(mar = c(4, 4.5, 3, 2))
+  
+  # Determine plot limits
+  all_R2 <- unlist(lapply(all_results, function(r) r$r2_curve$R2))
+  p_vals <- all_results[[1]]$r2_curve$p
+  
+  # Initialize plot
+  plot(NULL, xlim = range(p_vals), ylim = c(0, max(all_R2) * 1.05),
+       xlab = "Number of Predictors (p)", ylab = expression(R^2),
+       main = sprintf("R² Curves (%d Iterations)", n_iter), 
+       xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
+  axis(1, at = p_vals)
+  grid(col = "gray90", lty = 3)
+  
+  # Plot each iteration
+  for (i in 1:n_iter) {
+    r <- all_results[[i]]
+    lines(r$r2_curve$p, r$r2_curve$R2, type = "b", pch = 19, 
+          col = adjustcolor(colors[i], alpha.f = 0.6), lwd = 1.5, cex = 0.8)
+  }
+  
+  # Add true p* line
+  abline(v = p_true, lty = 1, col = "green3", lwd = 3)
+  
+  legend("bottomright",
+         legend = c("R² curves", "True p*"),
+         col = c(colors[1], "green3"),
+         lty = c(1, 1), pch = c(19, NA),
+         lwd = c(1.5, 3), cex = 1.0, bg = "white")
+  
+  dev.off()
+}
+
+
+#' Plot Criteria Comparison for Multiple Iterations
+plot_toy_criteria_multi <- function(all_results, p_true, filename) {
+  
+  n_iter <- length(all_results)
+  colors <- colorRampPalette(c("#2E86AB", "#A23B72", "#F18F01"))(n_iter)
+  
+  png(filename, width = 12, height = 7, units = "in", res = 300)
+  par(mar = c(4, 4.5, 3, 2))
+  
+  p_vals <- all_results[[1]]$r2_curve$p
+  
+  # Initialize plot
+  plot(NULL, xlim = range(p_vals), ylim = c(0, 1),
+       xlab = "Number of Predictors (p)", 
+       ylab = "Normalized Score (higher is better)",
+       main = sprintf("Model Selection Criteria (%d Iterations)", n_iter),
+       xaxt = "n", cex.lab = 1.2, cex.main = 1.3)
+  axis(1, at = p_vals)
+  grid(col = "gray90", lty = 3)
+  
+  # Plot each iteration
+  for (i in 1:n_iter) {
+    r <- all_results[[i]]
+    
+    # Compute normalized values
+    M_p_vals <- r$r2_curve$R2 / r$r2_curve$p
+    AIC_vals <- r$r2_curve$AIC
+    BIC_vals <- r$r2_curve$BIC
+    
+    normalize <- function(x) (x - min(x, na.rm=TRUE)) / (max(x, na.rm=TRUE) - min(x, na.rm=TRUE))
+    Mp_norm <- normalize(M_p_vals)
+    AIC_norm <- 1 - normalize(AIC_vals)
+    BIC_norm <- 1 - normalize(BIC_vals)
+    
+    # Plot M_p (Sigmoid)
+    lines(p_vals, Mp_norm, type = "b", pch = 19, 
+          col = adjustcolor(colors[i], alpha.f = 0.5), lwd = 1.5, cex = 0.8)
+    
+    # Plot AIC
+    lines(p_vals, AIC_norm, type = "b", pch = 17, 
+          col = adjustcolor("#2E86AB", alpha.f = 0.3), lwd = 1.2, cex = 0.7)
+    
+    # Plot BIC
+    lines(p_vals, BIC_norm, type = "b", pch = 15, 
+          col = adjustcolor("#F18F01", alpha.f = 0.3), lwd = 1.2, cex = 0.7)
+  }
+  
+  # Add true p* line
+  abline(v = p_true, lty = 1, col = "green3", lwd = 3)
+  
+  legend("right",
+         legend = c("M_p (Sigmoid)", "AIC", "BIC", "True p*"),
+         col = c(colors[ceiling(n_iter/2)], "#2E86AB", "#F18F01", "green3"),
+         lty = c(1, 1, 1, 1), pch = c(19, 17, 15, NA),
+         lwd = c(1.5, 1.2, 1.2, 3), cex = 1.0, bg = "white")
+  
+  # Add summary statistics
+  p_stars_sigmoid <- sapply(all_results, function(r) r$sigmoid$p_star)
+  p_stars_aic <- sapply(all_results, function(r) r$aic$p_star)
+  p_stars_bic <- sapply(all_results, function(r) r$bic$p_star)
+  
+  text_info <- sprintf("Sigmoid: %.1f±%.1f\nAIC: %.1f±%.1f\nBIC: %.1f±%.1f",
+                       mean(p_stars_sigmoid), sd(p_stars_sigmoid),
+                       mean(p_stars_aic), sd(p_stars_aic),
+                       mean(p_stars_bic), sd(p_stars_bic))
+  
+  usr <- par("usr")
+  text(x = usr[1] + (usr[2] - usr[1]) * 0.02, 
+       y = usr[3] + (usr[4] - usr[3]) * 0.15,
+       labels = text_info, adj = 0, cex = 0.85, 
+       col = "black", family = "mono")
+  
+  dev.off()
+}
+
+
+# ============================================================================
+# PLOTTING FUNCTIONS - LEGACY SINGLE-ITERATION VERSIONS (UNUSED)
+# ============================================================================
+
+#' Plot Sigmoid Fit for Single Iteration (legacy function)
 plot_toy_sigmoid <- function(r2_curve, result_sigmoid, p_true, filename) {
   
   p_vals <- r2_curve$p
@@ -354,7 +584,7 @@ plot_toy_sigmoid <- function(r2_curve, result_sigmoid, p_true, filename) {
 }
 
 
-#' Plot R² Curve
+#' Plot R² Curve for Single Iteration (legacy function)
 plot_toy_r2 <- function(r2_curve, p_true, p_selected, filename) {
   
   png(filename, width = 10, height = 6, units = "in", res = 300)
@@ -380,7 +610,7 @@ plot_toy_r2 <- function(r2_curve, p_true, p_selected, filename) {
 }
 
 
-#' Plot Criteria Comparison
+#' Plot Criteria Comparison for Single Iteration (legacy function)
 plot_toy_criteria <- function(r2_curve, p_sigmoid, p_aic, p_bic, p_true, filename) {
   
   p_vals <- r2_curve$p
@@ -442,6 +672,7 @@ cat(sprintf("  n = %d\n", n))
 cat(sprintf("  p = %d\n", p))
 cat(sprintf("  sigma_eps = %.2f\n", sigma_eps))
 cat(sprintf("  Sigma = Identity matrix\n"))
+cat(sprintf("  n_iterations = %d\n", n_iterations))
 cat(sprintf("\nNumber of scenarios: %d\n", length(scenarios)))
 
 # Run all scenarios (or specific one if provided as argument)
@@ -470,27 +701,35 @@ for (i in seq_along(scenarios_to_run)) {
     n = n,
     p = p,
     Sigma = Sigma,
-    sigma_eps = sigma_eps
+    sigma_eps = sigma_eps,
+    n_iterations = n_iterations
   )
 }
 
 # Summary table
 cat("\n")
-cat(paste(rep("=", 70), collapse = ""), "\n")
-cat("SUMMARY TABLE\n")
-cat(paste(rep("=", 70), collapse = ""), "\n\n")
+cat(paste(rep("=", 80), collapse = ""), "\n")
+cat("SUMMARY TABLE (Mean ± SD across iterations)\n")
+cat(paste(rep("=", 80), collapse = ""), "\n\n")
 
-cat(sprintf("%-20s %8s %8s %8s %8s\n", "Scenario", "True p*", "Sigmoid", "AIC", "BIC"))
-cat(paste(rep("-", 70), collapse = ""), "\n")
+cat(sprintf("%-20s %8s %15s %15s %15s\n", 
+            "Scenario", "True p*", "Sigmoid p*", "AIC p*", "BIC p*"))
+cat(paste(rep("-", 80), collapse = ""), "\n")
 
 for (i in seq_along(results)) {
   r <- results[[i]]
-  cat(sprintf("%-20s %8d %8d %8d %8d\n",
+  
+  # Extract p* values from all iterations
+  sigmoid_p_stars <- sapply(r$all_results, function(x) x$sigmoid$p_star)
+  aic_p_stars <- sapply(r$all_results, function(x) x$aic$p_star)
+  bic_p_stars <- sapply(r$all_results, function(x) x$bic$p_star)
+  
+  cat(sprintf("%-20s %8d %7.1f ± %4.2f %7.1f ± %4.2f %7.1f ± %4.2f\n",
               r$scenario$name,
               r$scenario$p_true,
-              r$sigmoid$p_star,
-              r$aic$p_star,
-              r$bic$p_star))
+              mean(sigmoid_p_stars), sd(sigmoid_p_stars),
+              mean(aic_p_stars), sd(aic_p_stars),
+              mean(bic_p_stars), sd(bic_p_stars)))
 }
 
 cat("\n")

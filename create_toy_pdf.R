@@ -11,7 +11,7 @@ library(png)
 library(grid)
 
 # Output PDF file
-output_pdf <- "results/toy_examples/all_metrics_plots.pdf" #"results/toy_examples/all_sigmoid_plots.pdf"
+output_pdf <- "results/toy_examples/all_sigmoid_plots_10iterations.pdf" #all_metrics_plots_10iterations.pdf" #"results/toy_examples/all_sigmoid_plots.pdf"
 
 # Get all scenario directories
 toy_dir <- "results/toy_examples"
@@ -25,7 +25,7 @@ pdf(output_pdf, width = 11, height = 8.5)
 for (i in seq_along(scenarios)) {
   scenario <- scenarios[i]
   scenario_name <- paste0("S", i)
-  img_path <- file.path(toy_dir, scenario, "03_criteria_comparison.png") # "01_sigmoid_fit.png")
+  img_path <- file.path(toy_dir, scenario, "01_sigmoid_fit.png") #"03_criteria_comparison.png") # "01_sigmoid_fit.png")
   
   if (file.exists(img_path)) {
     cat(sprintf("Adding %s...\n", scenario_name))
