@@ -19,6 +19,7 @@ if (length(args) < 1) {
   cat("  C1         - Weak Signals\n")
   cat("  C2         - Many Weak Signals\n")
   cat("  C3         - Mixed Signals\n\n")
+  cat("  C4         - Small Signals (3)")
   cat("Examples:\n")
   cat("  Rscript test_single_scenario.R A1\n")
   cat("  Rscript test_single_scenario.R A1 100\n")

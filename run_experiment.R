@@ -141,6 +141,18 @@ define_scenarios <- function() {
       support_spec = 8,
       signal_strength = "mixed",
       sigma_eps = 0.2
+    ),
+    
+    C4 = list(
+      name = "C4_Small_Signals",
+      description = "Small signals (supp = 3)",
+      n = 500,
+      p = 20,
+      sigma_structure = "identity",
+      rho = 0,
+      support_spec = 3,
+      signal_strength = "small",
+      sigma_eps = 0.2
     )
   )
 }

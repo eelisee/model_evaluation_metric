@@ -106,6 +106,15 @@ scenarios <- list(
     support = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
     beta_values = c(3.0, 3.0, 3.0, 5.0, 7.0, 1.5, 1.0, 1.5, 4.5, 4.5),
     p_true = 10
+  ),
+
+  # Scenario 4: 10 very unequal signals
+  S9 = list(
+    name = "S9_three_small_support",
+    description = "3 small coefficients",
+    support = c(1, 2, 3),
+    beta_values = c(2.0, 2.5, 3.5),
+    p_true = 3
   )
 
 )
@@ -435,12 +444,29 @@ cat(sprintf("  sigma_eps = %.2f\n", sigma_eps))
 cat(sprintf("  Sigma = Identity matrix\n"))
 cat(sprintf("\nNumber of scenarios: %d\n", length(scenarios)))
 
-# Run all scenarios
+# Run all scenarios (or specific one if provided as argument)
+args <- commandArgs(trailingOnly = TRUE)
+selected_scenario <- if (length(args) > 0) args[1] else NULL
+
+if (!is.null(selected_scenario)) {
+  # Run only the specified scenario
+  if (!selected_scenario %in% names(scenarios)) {
+    cat(sprintf("\nError: Scenario '%s' not found!\n", selected_scenario))
+    cat("Available scenarios:", paste(names(scenarios), collapse=", "), "\n\n")
+    quit(status = 1)
+  }
+  scenarios_to_run <- scenarios[selected_scenario]
+  cat(sprintf("\nRunning only scenario: %s\n", selected_scenario))
+} else {
+  # Run all scenarios
+  scenarios_to_run <- scenarios
+}
+
 results <- list()
 
-for (i in seq_along(scenarios)) {
+for (i in seq_along(scenarios_to_run)) {
   results[[i]] <- run_toy_scenario(
-    scenario = scenarios[[i]],
+    scenario = scenarios_to_run[[i]],
     n = n,
     p = p,
     Sigma = Sigma,
